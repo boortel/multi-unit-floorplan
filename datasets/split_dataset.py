@@ -12,7 +12,7 @@ heatmap_classes = {
 
 def split_dataset(dataset, input_file: str = 'input.png', data_dir: str = 'annotations/hdd/',
                   output_dir: str = './', split_ration: float = 0.6, filtering: List = None,
-                  test_only: bool = False, subfolders_only: bool = False) -> List[str]:
+                  test_only: bool = False, subfolders_only: bool = False, heatmaps: List = None) -> List[str]:
     """
     Function for creation tran, val, test sets descriptions
 
@@ -29,9 +29,10 @@ def split_dataset(dataset, input_file: str = 'input.png', data_dir: str = 'annot
     """
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
-    heatmaps = heatmap_classes.get(dataset, [])
+    if heatmaps is None:
+        heatmaps = heatmap_classes.get(dataset, [])
 
-    if dataset == 'cubicasa':
+    if dataset in ['cubicasa', 'cubicasa5k']:
         sub_dirs = []
         for file in ["train.txt", "test.txt", "val.txt"]:
             sub_dirs += open(os.path.join(data_dir, file), 'r').read().splitlines()

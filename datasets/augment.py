@@ -235,7 +235,7 @@ def process(data_dir, output_dir, sizes, p):
             # Save augmented images
             for name, input, mask in samples:
                 folder = os.path.join(output_dir, '_'.join([n, augments, name]))
-                os.mkdir(folder)
+                os.makedirs(folder, exist_ok=True)
                 cv2.imwrite(os.path.join(folder, 'input.png'), input)
                 cv2.imwrite(os.path.join(folder, 'mask.png'), mask)
                 cv2.imwrite(os.path.join(folder, 'mask_rgb.png'), ind2rgb(mask))

@@ -151,8 +151,9 @@ def dataset_create(dataset_name, classes, heatmap_inds, data_source, data_dir, a
         aug_data_dir = os.path.join(os.path.dirname(data_dir), dataset_augment)
         if not os.path.exists(aug_data_dir) or recreate:
             augmentation(data_source, input_dir=os.path.dirname(data_dir), output_dir=aug_data_dir, ann_dir=ann_dir)
-        sub_dirs = split_dataset(dataset_augment, input_file=input_image_name, data_dir=aug_data_dir, output_dir=aug_ann_dir,
-                                 subfolders_only=os.path.exists(aug_ann_dir) and not recreate)
+        sub_dirs = split_dataset(dataset_augment, input_file='input.png', data_dir=aug_data_dir, output_dir=aug_ann_dir,
+                                 subfolders_only=os.path.exists(aug_ann_dir) and not recreate,
+                                 heatmaps=[] if not heatmap_inds else None)
         if heatmap_inds:
             # Create heatmaps
             heat = [sub_dir for sub_dir in sub_dirs if not any(['heatmap' in file.split('.')[0] for file in os.listdir(
@@ -171,7 +172,7 @@ def dataset_create(dataset_name, classes, heatmap_inds, data_source, data_dir, a
                 pbar = tqdm(overs, "Processing")
                 for over in pbar:
                     pbar.set_postfix_str(over)
-                    create_overlay(over, data_dir=aug_data_dir, img_name=input_image_name,
+                    create_overlay(over, data_dir=aug_data_dir, img_name='input.png',
                                    save=True)
         # Create config
         cfg = utils.Config(cfg_dict=dict(dataset_name=dataset_name, dataset_file=dataset_augment,
