@@ -576,7 +576,9 @@ def mean_squared_error():
 
 def heatmap_regression_loss(num_classes, opening_inds):
     def loss_function(y_true, y_pred):
-        loss = 0
+        if not opening_inds:
+            return tf.constant(0.0, dtype=tf.float32)
+        loss = 0.0
         for i, ind in enumerate(opening_inds):
             opening_pred = y_pred[:, :, :, ind]  # Scale this since predictions are in [0,1]
             heatmap_true = y_true[:, :, :, num_classes + i]  # Use heatmap offset

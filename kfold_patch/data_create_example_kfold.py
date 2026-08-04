@@ -204,7 +204,7 @@ if __name__ == '__main__':
     # New dataset variables
     parser.add_argument('--dataset_name', default='CubiCasa5k', help='Dataset name. (MLSTRUCT-FP)')
     parser.add_argument('--classes', default=cubi_classes, help='Classes of the new dataset. (multi_class)')
-    parser.add_argument('--heatmap_inds', default=[], help='Indexes of heatmap to create. ([])')
+    parser.add_argument('--heatmap_inds', default=[3, 4], type=int, nargs='+', help='Indexes of heatmap to create. ([3, 4])')
     # Folders variables
     parser.add_argument('--data_source', default='cubicasa5k', help='Source data folder name. (MLSTRUCT-FP_v1)')
     parser.add_argument('--data_dir', default='data/',

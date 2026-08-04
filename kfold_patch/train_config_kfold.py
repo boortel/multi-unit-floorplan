@@ -1,6 +1,49 @@
+import ctypes
+import glob
 import logging
 import os
+import site
 import time
+
+
+# Preload NVIDIA GPU libraries BEFORE importing TensorFlow.
+# Setting LD_LIBRARY_PATH in Python doesn't affect dlopen() in the current process
+# (the dynamic linker only reads it at startup), so we must explicitly load each
+# shared library into the global symbol table via ctypes.
+def _preload_gpu_libs():
+    search_paths = ["/usr/lib/x86_64-linux-gnu"]
+    conda_prefix = os.environ.get("CONDA_PREFIX", "")
+    if conda_prefix:
+        search_paths.append(os.path.join(conda_prefix, "lib"))
+    try:
+        search_paths.extend(glob.glob(site.getsitepackages()[0] + "/nvidia/*/lib"))
+    except Exception:
+        pass
+
+    # Libraries TensorFlow needs for GPU support
+    lib_names = [
+        "libcuda.so.1",
+        "libcudart.so.11.0",
+        "libcudnn.so.8",
+        "libcublas.so.11",
+        "libcublasLt.so.11",
+        "libcufft.so.10",
+        "libcurand.so.10",
+        "libcusolver.so.11",
+        "libcusparse.so.11",
+    ]
+    for lib_name in lib_names:
+        for path in search_paths:
+            lib_path = os.path.join(path, lib_name)
+            if os.path.exists(lib_path):
+                try:
+                    ctypes.CDLL(lib_path, mode=ctypes.RTLD_GLOBAL)
+                except OSError:
+                    pass
+                break
+
+
+_preload_gpu_libs()
 
 import tensorflow as tf
 from tensorflow.python.keras.mixed_precision.loss_scale_optimizer import LossScaleOptimizer
@@ -63,16 +106,22 @@ def main():
                 print(f'Warning: option {key} is not in config.')
 
         tic = time.time()
-        k_fold = cfg.get('k_fold', 0)
+        k_fold = cfg.get('kFold', cfg.get('k_fold', 0))
+        cfg.hist = []
         if k_fold > 0:
             import numpy as np
             histories = []
             for f in range(k_fold):
+                tic_fold = time.time()
                 print(f"Starting fold {f}/{k_fold}")
                 cfg.fold = f
                 hist = train(cfg)
                 if hist is not None:
                     histories.append(hist.history)
+                    cfg.hist.append(hist.history)
+                cfgs = Config(cfg_dict=dict(train_cfg=cfg.to_dict()))
+                cfgs.dump(os.path.join(cfg.log_dir_fold, 'training_cfg.py'))
+                toc_fold = time.time()
             
             if histories:
                 print("\n--- K-Fold Cross Validation Results ---")
@@ -88,7 +137,7 @@ def main():
                         print(f"{key}: Mean = {mean_val:.4f}, Std = {std_val:.4f}")
                         metrics_summary[key] = {'mean': mean_val, 'std': std_val}
                 
-                with open(os.path.join(cfg.work_dir, 'models', 'kfold_summary.txt'), 'w') as f:
+                with open(os.path.join(cfg.log_dir, 'kfold_summary.txt'), 'w') as f:
                     for k, v in metrics_summary.items():
                         f.write(f"{k}: Mean = {v['mean']:.4f}, Std = {v['std']:.4f}\n")
         else:
@@ -160,10 +209,15 @@ def train(config):
         ValueError(f'Model: {model_type} is not implemented!')
 
     mkdir_or_exist(os.path.join(config.work_dir, 'models'))
-    fold_suffix = f"_fold_{config.fold}" if hasattr(config, 'fold') else ""
     config.log_dir = os.path.join(config.work_dir, 'models', '_'.join(
         [model_type, exp_name, str(backbone or ''), ','.join(map(str, filters)), dataset,
-         time.strftime("%Y%m%d-%H%M%S")]) + fold_suffix)
+         time.strftime("%Y%m%d-%H%M%S")]))
+         
+    if hasattr(config, 'fold'):
+        config.log_dir_fold = config.log_dir + f"/{config.fold}"
+        mkdir_or_exist(config.log_dir_fold)
+    else:
+        config.log_dir_fold = config.log_dir
 
     with strategy.scope():
         metrics = []
@@ -365,7 +419,7 @@ def train(config):
                                                                                      n_upsample=n_up_sample_block,
                                                                                      reduction_ratio=data_reduction,
                                                                                      fold=getattr(config, 'fold', None),
-                                                                                     k_fold=config.get('k_fold', None))
+                                                                                     k_fold=config.get('kFold', config.get('k_fold', None)))
         early_stop = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=30, verbose=verbose)
         progbar = TqdmCallback(verbose=2)
 
@@ -378,7 +432,7 @@ def train(config):
             callbacks.append(AutomaticWeightedLossCallback(aaf_count > 0))
         trainer = Trainer(checkpoint_callback=True, checkpoint_weights_only=checkpoint_weights_only,
                           learning_rate_scheduler=None, tensorboard_images_callback=False, callbacks=callbacks,
-                          log_dir_path=config.log_dir)
+                          log_dir_path=config.log_dir_fold)
         history = trainer.fit(unet_model,
                               train_dataset,
                               validation_dataset,

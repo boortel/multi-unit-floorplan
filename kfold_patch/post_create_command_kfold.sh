@@ -17,5 +17,6 @@ conda clean -a -y
 
 # Setup LD_LIBRARY_PATH for TensorFlow GPU support
 mkdir -p /opt/miniconda3/envs/main/etc/conda/activate.d
-echo 'CUDNN_PATH=$(dirname $(python3 -c "import nvidia.cudnn;print(nvidia.cudnn.__file__)"))' > /opt/miniconda3/envs/main/etc/conda/activate.d/env_vars.sh
-echo 'export LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:/opt/miniconda3/envs/main/lib:$CUDNN_PATH/lib:$LD_LIBRARY_PATH' >> /opt/miniconda3/envs/main/etc/conda/activate.d/env_vars.sh
+echo 'NV_LIBS=$(python -c "import site, glob; print(\":\".join(glob.glob(site.getsitepackages()[0] + \"/nvidia/*/lib\")))")' >> /opt/miniconda3/envs/main/etc/conda/activate.d/env_vars.sh
+echo 'export LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:/opt/miniconda3/envs/main/lib:$NV_LIBS:$LD_LIBRARY_PATH' >> /opt/miniconda3/envs/main/etc/conda/activate.d/env_vars.sh
+

@@ -8,6 +8,9 @@ log/*
 unet/*
 models/*
 
+*.h5
+*.txt
+
 *~
 *.pyc
 *.py[cod]
