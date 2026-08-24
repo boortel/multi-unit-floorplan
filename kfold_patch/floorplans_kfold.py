@@ -102,11 +102,13 @@ def preprocess_normalize(img, mask, heatmaps, width, height, classes):
 
 
 def load_dataset(type, normalize, classes, n_upsample=None, reduction_ratio=None):
-    raw_dataset = tf.data.TFRecordDataset(type + '.tfrecords')
+    raw_dataset = tf.data.TFRecordDataset(type + '.tfrecords', num_parallel_reads=tf.data.AUTOTUNE)
     if normalize:
-        parsed_dataset = raw_dataset.map(lambda example: _parse_function_normalize(example, classes, n_upsample, reduction_ratio))
+        parsed_dataset = raw_dataset.map(lambda example: _parse_function_normalize(example, classes, n_upsample, reduction_ratio),
+                                         num_parallel_calls=tf.data.AUTOTUNE)
     else:
-        parsed_dataset = raw_dataset.map(lambda example: _parse_function(example, classes, n_upsample, reduction_ratio))
+        parsed_dataset = raw_dataset.map(lambda example: _parse_function(example, classes, n_upsample, reduction_ratio),
+                                         num_parallel_calls=tf.data.AUTOTUNE)
     return parsed_dataset
 
 

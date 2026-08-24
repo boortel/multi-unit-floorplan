@@ -58,6 +58,7 @@ scipy
 Shapely
 six
 tabulate
+optuna
 tensorboard
 tensorboard-data-server
 tensorboard-plugin-wit

@@ -1,20 +1,26 @@
 _base_ = ['../configs/base/default_runtime.py', '../configs/base/default_model.py', '../configs/datasets/cubicasa5k.py']
 
 model_type = 'cab2'
-exp_name = 'cab2_eval_cubicasa'
-backbone = 'EfficientNetB2'
+exp_name = 'cab2_eval_cubicasa_v2s'
+backbone = 'EfficientNetV2S'
 filters = [32, 64, 128, 256, 512]
 n_up_sample_block = len(filters) + 1  # Fix for up_sample_block bug
 output_activation = 'Softmax'
 batch_norm = True
 aaf = [2, 4]
-hhdc = 5
+hhdc = False
 cam = 3
 
 loss_functions = ['asym_unified_focal_loss', 'heatmap_regression_loss', 'adaptive_affinity_loss', 'AutomaticWeightedLoss']
 
-batch_size = 2
+# Training
+batch_size = 4          # 4 = 2 GPUs x 2 samples/GPU (same per-GPU batch as before)
 epochs = 100
+
+# LR scheduling: 'cosine-decay-warmup', 'cosine-decay', 'reduce-lr-on-plateau', or None
+lr_scheduler = 'cosine-decay-warmup'
+lr_min = 1e-6           # final LR at end of cosine decay
+warmup_epochs = 5       # linear warmup before cosine decay begins
 
 ## K-Fold specs
 kFold = 10

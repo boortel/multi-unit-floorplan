@@ -89,11 +89,11 @@ class Trainer:
 
         # train_dataset = train_dataset.map(utils.crop_labels_to_shape(prediction_shape)).batch(batch_size)
         # Drop remainder due to batch size 0 bug
-        train_dataset = train_dataset.padded_batch(batch_size, drop_remainder=True)
+        train_dataset = train_dataset.padded_batch(batch_size, drop_remainder=True).prefetch(tf.data.AUTOTUNE)
 
         if validation_dataset:
             # validation_dataset = validation_dataset.map(utils.crop_labels_to_shape(prediction_shape)).batch(batch_size)
-            validation_dataset = validation_dataset.padded_batch(batch_size, drop_remainder=True)
+            validation_dataset = validation_dataset.padded_batch(batch_size, drop_remainder=True).prefetch(tf.data.AUTOTUNE)
 
         history = model.fit(train_dataset,
                             validation_data=validation_dataset,

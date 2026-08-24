@@ -47,6 +47,27 @@ layer_cadidates = {
     'EfficientNetB7': (
     'block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation',
     'top_activation'),
+    'EfficientNetV2B0': (
+    'block1a_project_activation', 'block2b_add', 'block4a_expand_activation', 'block6a_expand_activation',
+    'top_activation'),
+    'EfficientNetV2B1': (
+    'block1b_add', 'block2c_add', 'block4a_expand_activation', 'block6a_expand_activation',
+    'top_activation'),
+    'EfficientNetV2B2': (
+    'block1b_add', 'block2c_add', 'block4a_expand_activation', 'block6a_expand_activation',
+    'top_activation'),
+    'EfficientNetV2B3': (
+    'block1b_add', 'block2c_add', 'block4a_expand_activation', 'block6a_expand_activation',
+    'top_activation'),
+    'EfficientNetV2S': (
+    'block1b_add', 'block2d_add', 'block4a_expand_activation', 'block6a_expand_activation',
+    'top_activation'),
+    'EfficientNetV2M': (
+    'block1c_add', 'block2e_add', 'block4a_expand_activation', 'block6a_expand_activation',
+    'top_activation'),
+    'EfficientNetV2L': (
+    'block1d_add', 'block2g_add', 'block4a_expand_activation', 'block6a_expand_activation',
+    'top_activation'),
     'InternImage': ('level0_norm', 'level1_norm', 'level2_norm', 'level3_norm')}
 
 
@@ -81,6 +102,7 @@ def backbone_zoo(backbone_name, weights, input_tensor, depth, freeze_backbone, f
                        (3) ResNet50V2, ResNet101V2, ResNet152V2
                        (4) DenseNet121, DenseNet169, DenseNet201
                        (5) EfficientNetB[0,7]
+                       (6) EfficientNetV2[B0-B3,S,M,L]
 
         weights: one of None (random initialization), 'imagenet' (pre-training on ImageNet),
                  or the path to the weights file to be loaded.

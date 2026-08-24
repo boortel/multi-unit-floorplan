@@ -7,6 +7,7 @@ heatmap_classes = {
     'r3d_augment': ['openings'],
     'cubicasa5k_augment': ['doors', 'windows'],
     'multi_plans_augment': ['doors', 'sliding_doors', 'windows'],
+    'cubicasa5k': ['doors', 'windows'],
 }
 
 

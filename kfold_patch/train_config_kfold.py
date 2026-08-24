@@ -59,6 +59,7 @@ from segmentation_models.models.ours_multi.ours_multi import ours_multi
 from segmentation_models.models.unet3plus.model_unet_2d import unet_2d
 from segmentation_models.models.unet3plus.model_unet_3plus_2d import unet_3plus_2d
 from training import Trainer, loss_functions
+from training.schedulers import SchedulerType, get as get_scheduler
 from training.AutomaticWeightedLoss import AutomaticWeightedLoss, AutomaticWeightedLossCallback
 
 from tqdm.keras import TqdmCallback
@@ -158,7 +159,7 @@ def main():
     print('Finished')
 
 
-def train(config):
+def train(config, extra_callbacks=None):
     strategy = tf.distribute.MirroredStrategy()
     print('Number of devices: {}'.format(strategy.num_replicas_in_sync))
 
@@ -420,18 +421,57 @@ def train(config):
                                                                                      reduction_ratio=data_reduction,
                                                                                      fold=getattr(config, 'fold', None),
                                                                                      k_fold=config.get('kFold', config.get('k_fold', None)))
-        early_stop = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=30, verbose=verbose)
+        patience = config.get('early_stopping_patience', config.get('patience', 30))
+        early_stop = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=patience, verbose=verbose)
         progbar = TqdmCallback(verbose=2)
-
         callbacks = [early_stop, progbar]
-        if model_type in ['unetpp', 'unet3p', 'ours_multi', 'cab1', 'cab2']:
-            reduce_lr = tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=10, min_lr=1e-5,
-                                                         verbose=verbose)
+
+        # --- LR Scheduling ---
+        # Read from config; default to cosine-decay-warmup for all models.
+        # Supported values: 'cosine-decay-warmup', 'cosine-decay', 'reduce-lr-on-plateau', None
+        lr_scheduler_type = config.get('lr_scheduler', 'cosine-decay-warmup')
+        lr_min = config.get('lr_min', 1e-6)
+        warmup_epochs = config.get('warmup_epochs', 5)
+        learning_rate = optimizer.lr.numpy() if hasattr(optimizer, 'lr') else config.get('optimizer', {}).get('learning_rate', 1e-4)
+
+        if lr_scheduler_type in ('cosine-decay-warmup', 'cosine-decay'):
+            # Compute total steps from the actual training dataset size
+            train_dataset_size = tf.data.experimental.cardinality(train_dataset).numpy()
+            if train_dataset_size < 0:
+                # Dataset size unknown (generator-based); fall back to train_buffer_size
+                train_dataset_size = train_buffer_size
+            scheduler_enum = (SchedulerType.COSINE_DECAY_WITH_WARMUP
+                              if lr_scheduler_type == 'cosine-decay-warmup'
+                              else SchedulerType.COSINE_DECAY)
+            cosine_cb = get_scheduler(
+                scheduler_enum,
+                train_dataset_size=train_dataset_size,
+                learning_rate=learning_rate,
+                batch_size=batch_size,
+                epochs=epochs,
+                min_lr=lr_min,
+                warmup_epochs=warmup_epochs,
+            )
+            callbacks.append(cosine_cb)
+            print(f'LR scheduler: {lr_scheduler_type} (lr={learning_rate:.2e} -> {lr_min:.2e}, '
+                  f'warmup_epochs={warmup_epochs if lr_scheduler_type == "cosine-decay-warmup" else 0})')
+
+        if lr_scheduler_type == 'reduce-lr-on-plateau' or config.get('use_reduce_lr_on_plateau', False):
+            reduce_lr = tf.keras.callbacks.ReduceLROnPlateau(
+                monitor='val_loss', factor=0.5, patience=10, min_lr=lr_min, verbose=verbose)
             callbacks.append(reduce_lr)
+            print(f'LR scheduler: ReduceLROnPlateau (factor=0.5, patience=10, min_lr={lr_min:.2e})')
+
         if hasattr(unet_model, 'automatic_loss'):
             callbacks.append(AutomaticWeightedLossCallback(aaf_count > 0))
-        trainer = Trainer(checkpoint_callback=True, checkpoint_weights_only=checkpoint_weights_only,
-                          learning_rate_scheduler=None, tensorboard_images_callback=False, callbacks=callbacks,
+        if extra_callbacks:
+            callbacks.extend(extra_callbacks)
+
+        checkpoint_callback = config.get('checkpoint_callback', True)
+        tensorboard_callback = config.get('tensorboard_callback', True)
+        trainer = Trainer(checkpoint_callback=checkpoint_callback, checkpoint_weights_only=checkpoint_weights_only,
+                          learning_rate_scheduler=None, tensorboard_callback=tensorboard_callback,
+                          tensorboard_images_callback=False, callbacks=callbacks,
                           log_dir_path=config.log_dir_fold)
         history = trainer.fit(unet_model,
                               train_dataset,

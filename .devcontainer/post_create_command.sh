@@ -1,3 +1,4 @@
+apt-get curl
 apt-get update
 apt-get install -y tmux
 apt-get install -y nvtop
@@ -14,6 +15,10 @@ conda clean -a -y
 # dvc pull
 
 # pre-commit install
+
+# Install antigravity
+curl -fsSL https://antigravity.google/cli/install.sh | bash
+#echo 'export PATH="/root/.local/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc
 
 # Setup LD_LIBRARY_PATH for TensorFlow GPU support
 mkdir -p /opt/miniconda3/envs/main/etc/conda/activate.d

@@ -3,10 +3,8 @@ from __future__ import absolute_import
 import warnings
 
 import tensorflow as tf
-from tensorflow.keras.layers import Input
+from tensorflow.keras.layers import Input, Conv2D, Activation, concatenate
 from tensorflow.keras.models import Model
-from tensorflow.python.keras.layers import Activation, concatenate
-from tensorflow.python.layers.convolutional import Conv2D
 from tensorflow_addons.layers import AdaptiveAveragePooling2D, AdaptiveMaxPooling2D
 
 from segmentation_models.models.base_model import BaseModel
@@ -42,18 +40,26 @@ def AM(X, channel, final_channel, activation, fused_layers, encoder_threshold, r
         X_s = fused_layers[:-encoder_threshold]
         if len(X_s) > 1:
             X_s = concatenate(X_s, axis=-1)
-        else:
+        elif len(X_s) == 1:
             X_s = X_s[0]
+        else:
+            X_s = fused_layers[0] if len(fused_layers) > 0 else X
         if use_hhdc == 3:
-            channel_s = channel / 5 * (5 - encoder_threshold)
+            channel_s = int(channel / 5 * (5 - encoder_threshold))
 
     if use_hhdc == 3 or use_hhdc == 4:
         X_c = fused_layers[-encoder_threshold:]
         if len(X_c) > 1:
             X_c = concatenate(X_c, axis=-1)
-        else:
+        elif len(X_c) == 1:
             X_c = X_c[0]
-        channel_c = channel / 5 * encoder_threshold
+        else:
+            X_c = fused_layers[-1] if len(fused_layers) > 0 else X
+        if use_hhdc == 3:
+            channel_c = channel - channel_s
+        else:
+            channel_c = int(channel / 5 * encoder_threshold)
+            channel_s = channel - channel_c
 
     assert channel_s + channel_c == channel
 
@@ -168,8 +174,10 @@ class SAM5(tf.keras.layers.Layer):
         self.sigmoid = tf.keras.layers.Activation('sigmoid')
 
         self.hhdc = []
+        out_planes = int(out_planes)
+        filters_per_block = [out_planes // n_blocks + (1 if i < (out_planes % n_blocks) else 0) for i in range(n_blocks)]
         for i in range(n_blocks):
-            self.conv.append(Conv2D(out_planes / n_blocks, 1, use_bias=False, padding='same'))
+            self.conv.append(Conv2D(filters_per_block[i], 1, use_bias=False, padding='same'))
             self.hhdc.append(HHDC(1))
 
     def call(self, x):

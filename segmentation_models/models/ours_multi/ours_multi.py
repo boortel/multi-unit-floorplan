@@ -3,10 +3,8 @@ from __future__ import absolute_import
 import warnings
 
 import tensorflow as tf
-from tensorflow.keras.layers import Input
+from tensorflow.keras.layers import Input, Conv2D, Activation, concatenate
 from tensorflow.keras.models import Model
-from tensorflow.python.keras.layers import Activation, concatenate
-from tensorflow.python.layers.convolutional import Conv2D
 from tensorflow_addons.layers import AdaptiveAveragePooling2D, AdaptiveMaxPooling2D
 
 from segmentation_models.models.base_model import BaseModel

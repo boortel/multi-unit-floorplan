@@ -62,27 +62,43 @@ def distmat(shape, points, method='distance_transform_edt'):
 
 
 def write(file, img):
+    if img.dtype != np.uint8:
+        img = img.astype(np.uint8)
     cv2.imwrite(file, img)
 
 
-def create_heatmap_from_paths(dataset, data_dir, sub_dirs, show=False):
+def create_heatmap_from_paths(dataset, data_dir, sub_dirs, show=False, num_workers=32):
+    from datasets.split_dataset import heatmap_classes
     print(f'Processing heatmaps for dataset: {dataset} with {len(sub_dirs)} files.')
     config = {'dataset': dataset, 'path': os.path.join(data_dir, dataset)}
     if 'cubicasa5k' in dataset:
         config['classes'] = ['walls', 'glass_walls', 'railings', 'doors', 'sliding_doors', 'windows', 'stairs_all']
-        config['classes_indices'] = [3, 5, 6]
+        target_classes = heatmap_classes.get(dataset, ['doors', 'windows'])
+        config['classes_indices'] = [config['classes'].index(c) for c in target_classes if c in config['classes']]
+        if not config['classes_indices']:
+            config['classes_indices'] = [3, 5]
     elif 'r3d' in dataset:
         config['classes'] = ['walls', 'openings']
-        config['classes_indices'] = [1]
+        target_classes = heatmap_classes.get(dataset, ['openings'])
+        config['classes_indices'] = [config['classes'].index(c) for c in target_classes if c in config['classes']]
+        if not config['classes_indices']:
+            config['classes_indices'] = [1]
     elif 'multi_plans' in dataset:
         config['classes'] = ['walls', 'glass_walls', 'railings', 'doors', 'sliding_doors', 'windows', 'stairs_all']
-        config['classes_indices'] = [3, 4, 5, 6]
+        target_classes = heatmap_classes.get(dataset, ['doors', 'sliding_doors', 'windows'])
+        config['classes_indices'] = [config['classes'].index(c) for c in target_classes if c in config['classes']]
+        if not config['classes_indices']:
+            config['classes_indices'] = [3, 4, 5]
     else:
         print(f'Dataset {dataset} is not Implemented')
         return
 
-    for sub_dir in tqdm(sub_dirs):
-        process(config, show, sub_dir)
+    if num_workers and num_workers > 1 and len(sub_dirs) > 1:
+        with Pool(processes=num_workers) as pool:
+            list(tqdm(pool.imap_unordered(partial(process, config, show), sub_dirs), total=len(sub_dirs)))
+    else:
+        for sub_dir in tqdm(sub_dirs):
+            process(config, show, sub_dir)
 
 
 def create_heatmap_from_config(config, show=False):
@@ -177,10 +193,17 @@ def generate_heatmap(c, show, mask):
 def process(config, show, folder):
     tic = time.time()
     path = config['path']
-    input = cv2.imread(os.path.join(path, folder, 'input.png'))
     mask = cv2.imread(os.path.join(path, folder, 'mask.png'), 0)
+    if mask is None:
+        return
 
+    input_img = None
     if show:
+        input_path = os.path.join(path, folder, 'input.png')
+        if not os.path.exists(input_path):
+            input_path = os.path.join(path, folder, 'F1_scaled.png')
+        if os.path.exists(input_path):
+            input_img = cv2.imread(input_path)
         plt.figure(dpi=200)
         plt.imshow(ind2rgb(mask))
         plt.axis('off')
@@ -229,7 +252,8 @@ def process(config, show, folder):
                         print(np.min(heatmap_beta), np.max(heatmap_beta))
 
                         plt.figure(dpi=200)
-                        plt.imshow(input)
+                        if input_img is not None:
+                            plt.imshow(input_img)
                         plt.imshow(heatmap_beta, alpha=0.6)
                         plt.axis('off')
                         plt.savefig('heatmap_beta' + str(sigma), bbox_inches='tight', pad_inches=0)
