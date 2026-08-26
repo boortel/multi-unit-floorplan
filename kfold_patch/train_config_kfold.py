@@ -46,9 +46,26 @@ def _preload_gpu_libs():
 _preload_gpu_libs()
 
 import tensorflow as tf
+from tensorflow.keras import mixed_precision
 from tensorflow.python.keras.mixed_precision.loss_scale_optimizer import LossScaleOptimizer
-#from tensorflow.python.keras.mixed_precision.experimental.loss_scale_optimizer import LossScaleOptimizer
-#from tensorflow.python.training.experimental import mixed_precision
+
+# Limit visible physical GPUs to at most 2 devices if not explicitly set by environment
+try:
+    gpus = tf.config.list_physical_devices('GPU')
+    if len(gpus) > 2 and 'CUDA_VISIBLE_DEVICES' not in os.environ:
+        tf.config.set_visible_devices(gpus[:2], 'GPU')
+        print(f"Restricting visible GPUs to at most 2 devices: {[g.name for g in gpus[:2]]}")
+    for gpu in tf.config.list_physical_devices('GPU'):
+        tf.config.experimental.set_memory_growth(gpu, True)
+except Exception as e:
+    print(f"GPU device setup note: {e}")
+
+# Enable Mixed Precision policy (FP16 compute with FP32 weights/scaling for Tensor Cores)
+mixed_precision.set_global_policy('mixed_float16')
+print(f"Mixed precision global policy: {mixed_precision.global_policy().name}")
+
+# Enable XLA JIT Compilation for operator fusion
+tf.config.optimizer.set_jit(True)
 
 import segmentation_models as sm
 from datasets import floorplans
@@ -66,8 +83,6 @@ from tqdm.keras import TqdmCallback
 from utils import Config, mkdir_or_exist, get_args_dict
 
 os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
-# os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-# os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 logging.disable(logging.WARNING)
 
 
@@ -229,10 +244,14 @@ def train(config, extra_callbacks=None):
                 ValueError(f'Metric: {m} is not Implemented!')
 
         if optimizer.get('type', None) == 'Adam':
-            loss_scale = optimizer.get('lossScale', None)
-            optimizer = tf.keras.optimizers.Adam(learning_rate=optimizer.get('learning_rate', 1e-4))
-            if loss_scale:
-                optimizer = LossScaleOptimizer(optimizer, loss_scale='dynamic')
+            lr = optimizer.get('learning_rate', 1e-4)
+            base_opt = tf.keras.optimizers.Adam(learning_rate=lr)
+            if mixed_precision.global_policy().name == 'mixed_float16':
+                optimizer = mixed_precision.LossScaleOptimizer(base_opt)
+            elif optimizer.get('lossScale', None):
+                optimizer = LossScaleOptimizer(base_opt, loss_scale='dynamic')
+            else:
+                optimizer = base_opt
         else:
             ValueError(f'Not implemented optimizer: {optimizer}')
 
@@ -466,7 +485,6 @@ def train(config, extra_callbacks=None):
             callbacks.append(AutomaticWeightedLossCallback(aaf_count > 0))
         if extra_callbacks:
             callbacks.extend(extra_callbacks)
-
         checkpoint_callback = config.get('checkpoint_callback', True)
         tensorboard_callback = config.get('tensorboard_callback', True)
         trainer = Trainer(checkpoint_callback=checkpoint_callback, checkpoint_weights_only=checkpoint_weights_only,

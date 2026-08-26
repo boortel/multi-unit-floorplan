@@ -511,9 +511,6 @@ def adaptive_affinity_loss(size,
         edge = tf.logical_and(edge, not_ignore)
         not_edge = tf.logical_and(tf.logical_not(edge), not_ignore)
 
-        edge_indices = tf.where(tf.reshape(edge, [-1]))
-        not_edge_indices = tf.where(tf.reshape(not_edge, [-1]))
-
         # Extract eight corner from the center in a patch as paired pixels.
         probs_paired = eightcorner_activation(y_pred, size)  # NxHxWxCx8
         probs = tf.expand_dims(y_pred, axis=-1)  # NxHxWxCx1
@@ -546,18 +543,22 @@ def adaptive_affinity_loss(size,
         edge_loss *= w_edge_sum
         not_edge_loss *= w_not_edge_sum
 
-        not_edge_loss = tf.reshape(not_edge_loss, [-1])
-        not_edge_loss = tf.gather(not_edge_loss, not_edge_indices)
-        edge_loss = tf.reshape(edge_loss, [-1])
-        edge_loss = tf.gather(edge_loss, edge_indices)
+        # Vectorized masked reduction (eliminates dynamic tf.where / tf.gather allocations and syncs)
+        edge_mask = tf.cast(edge, tf.float32)
+        not_edge_mask = tf.cast(not_edge, tf.float32)
 
-        loss = 0.0
+        edge_count = tf.reduce_sum(edge_mask)
+        not_edge_count = tf.reduce_sum(not_edge_mask)
+
+        edge_loss_mean = tf.reduce_sum(edge_loss * edge_mask) / tf.maximum(edge_count, 1.0)
+        not_edge_loss_mean = tf.reduce_sum(not_edge_loss * not_edge_mask) / tf.maximum(not_edge_count, 1.0)
+
         scale = 0.75
-        if tf.greater(tf.size(edge_loss), 0):
-            loss += 0.5 * 1 / scale * tf.reduce_mean(edge_loss)
-        if tf.greater(tf.size(not_edge_loss), 0):
-            loss += 20 * scale * tf.reduce_mean(not_edge_loss)
-        return loss / num_classes
+        edge_weight = tf.where(edge_count > 0.0, 0.5 / scale, 0.0)
+        not_edge_weight = tf.where(not_edge_count > 0.0, 20.0 * scale, 0.0)
+
+        loss = (edge_weight * edge_loss_mean + not_edge_weight * not_edge_loss_mean) / num_classes
+        return loss
 
     return loss_function
 

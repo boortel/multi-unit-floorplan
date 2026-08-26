@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 
 def load_train_data(classes, dataset, normalize=True, buffer_size=400, base_dir='data', n_upsample=None,
-                    reduction_ratio=None, fold=None, k_fold=None) -> [tf.data.Dataset, tf.data.Dataset, tf.data.Dataset]:
+                    reduction_ratio=None, fold=None, k_fold=None, cache=True) -> [tf.data.Dataset, tf.data.Dataset, tf.data.Dataset]:
     if fold is not None and k_fold is not None and k_fold > 0:
         val_dataset = load_dataset(os.path.join(base_dir, dataset + f'_fold_{fold}'),
                                    normalize, classes, n_upsample, reduction_ratio)
@@ -20,23 +20,35 @@ def load_train_data(classes, dataset, normalize=True, buffer_size=400, base_dir=
         train_dataset = train_datasets[0]
         for ds in train_datasets[1:]:
             train_dataset = train_dataset.concatenate(ds)
+        if cache:
+            train_dataset = train_dataset.cache()
+            val_dataset = val_dataset.cache()
         train_dataset = train_dataset.shuffle(buffer_size)
         test_dataset = load_dataset(os.path.join(base_dir, dataset + '_test'),
                                     normalize, classes, n_upsample, reduction_ratio)
+        if cache:
+            test_dataset = test_dataset.cache()
     else:
         train_dataset = load_dataset(os.path.join(base_dir, dataset + '_train'),
-                                     normalize, classes, n_upsample, reduction_ratio).shuffle(buffer_size)
+                                     normalize, classes, n_upsample, reduction_ratio)
         val_dataset = load_dataset(os.path.join(base_dir, dataset + '_val'),
                                    normalize, classes, n_upsample, reduction_ratio)
         test_dataset = load_dataset(os.path.join(base_dir, dataset + '_test'),
                                     normalize, classes, n_upsample, reduction_ratio)
+        if cache:
+            train_dataset = train_dataset.cache()
+            val_dataset = val_dataset.cache()
+            test_dataset = test_dataset.cache()
+        train_dataset = train_dataset.shuffle(buffer_size)
     return train_dataset, val_dataset, test_dataset
 
 
 def load_test_data(classes, dataset, normalize=True,
-                   base_dir='data', n_upsample=None, reduction_ratio=None) -> [tf.data.Dataset]:
+                   base_dir='data', n_upsample=None, reduction_ratio=None, cache=True) -> [tf.data.Dataset]:
     test_dataset = load_dataset(os.path.join(base_dir, dataset + '_test'),
                                 normalize, classes, n_upsample, reduction_ratio)
+    if cache:
+        test_dataset = test_dataset.cache()
     return test_dataset
 
 

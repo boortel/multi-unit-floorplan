@@ -24,22 +24,19 @@ class BaseModel(Model):
             y_pred = self(x, training=True)
             loss = self.compiled_loss(
                 y, y_pred, sample_weight, regularization_losses=self.losses)
-            # if isinstance(optimizer, LossScaleOptimizer):
-            #     loss = optimizer.get_scaled_loss(loss)
+            if hasattr(optimizer, 'get_scaled_loss'):
+                loss = optimizer.get_scaled_loss(loss)
 
         trainable_variables = self.trainable_variables
 
         gradients = tape.gradient(loss, trainable_variables)
-        # if isinstance(optimizer, LossScaleOptimizer):
-        #     gradients = optimizer.get_unscaled_gradients(gradients)
-
-        # aaf_trainable = trainable_variables[len(trainable_variables)-len([v for v in trainable_variables if 'edge' in v.name]):]
+        if hasattr(optimizer, 'get_unscaled_gradients'):
+            gradients = optimizer.get_unscaled_gradients(gradients)
 
         aaf_len = len([v for v in trainable_variables if 'edge' in v.name])
-        # other_grads = gradients[:len(trainable_variables)-aaf_len:]
-        # aaf_grads = -gradients[len(trainable_variables)-aaf_len:]
-
-        gradients[-aaf_len:] = [-grad for grad in gradients[-aaf_len:]]
+        if aaf_len > 0:
+            gradients = list(gradients)
+            gradients[-aaf_len:] = [-grad if grad is not None else None for grad in gradients[-aaf_len:]]
 
         self.optimizer.apply_gradients(zip(gradients, trainable_variables))
         # self.optimizer.apply_gradients(zip(gradients, trainable_variables))
