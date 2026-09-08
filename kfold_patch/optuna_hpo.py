@@ -109,12 +109,14 @@ _COMMON_DICT = dict(
 )
 
 
-# ── Search space ─────────────────────────────────────────────────────────────
-def suggest_params(trial: optuna.Trial, model: str) -> dict:
+def suggest_params(trial: optuna.Trial, model: str, fixed_backbone: str = None) -> dict:
     """Define the hyperparameter search space and sample from it."""
 
-    backbone = trial.suggest_categorical(
-        "backbone", ["EfficientNetB0", "EfficientNetB2", "EfficientNetB3", "EfficientNetB4"])
+    if fixed_backbone:
+        backbone = fixed_backbone
+    else:
+        backbone = trial.suggest_categorical(
+            "backbone", ["EfficientNetB0", "EfficientNetB2", "EfficientNetB3", "EfficientNetB4", "EfficientNetB5", "EfficientNetV2B3", "EfficientNetV2S", "EfficientNetV2M"])
 
     filter_preset = trial.suggest_categorical(
         "filter_preset", ["small", "base", "large"])
@@ -156,9 +158,9 @@ def suggest_params(trial: optuna.Trial, model: str) -> dict:
 
 
 # ── Objective ────────────────────────────────────────────────────────────────
-def make_objective(model: str, epochs: int, work_dir: str):
+def make_objective(model: str, epochs: int, work_dir: str, fixed_backbone: str = None):
     def objective(trial: optuna.Trial) -> float:
-        params = suggest_params(trial, model)
+        params = suggest_params(trial, model, fixed_backbone=fixed_backbone)
 
         # Build config
         cfg_dict = dict(**_COMMON_DICT, **params)
@@ -200,6 +202,8 @@ def main():
                         help="Max epochs per trial (default: 100)")
     parser.add_argument("--fold",    type=int, default=0,
                         help="K-fold split to use (default: 0)")
+    parser.add_argument("--backbone", default=None,
+                        help="Fix backbone (e.g. EfficientNetV2S) instead of searching over backbones")
     parser.add_argument("--db",      default=None,
                         help="SQLite DB path (default: optuna_<model>.db)")
     parser.add_argument("--study",   default=None,
@@ -235,6 +239,8 @@ def main():
     print(f"\nStudy: {study_name}")
     print(f"DB:    {db_path}")
     print(f"Model: {args.model}  |  fold={args.fold}  |  epochs={args.epochs}")
+    if args.backbone:
+        print(f"Fixed Backbone: {args.backbone}")
     print(f"Completed trials: {n_completed}  |  Remaining: {n_remaining}")
     if n_completed > 0:
         print(f"Best so far: val_loss={study.best_value:.4f}")
@@ -243,7 +249,7 @@ def main():
     if n_remaining == 0:
         print("All requested trials already completed.")
     else:
-        objective = make_objective(args.model, args.epochs, work_dir=".")
+        objective = make_objective(args.model, args.epochs, work_dir=".", fixed_backbone=args.backbone)
         study.optimize(objective, n_trials=n_remaining,
                        catch=(Exception,))
 

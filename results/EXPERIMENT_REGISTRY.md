@@ -1,42 +1,76 @@
 # Results & Experiment Registry Manifest
 **Project:** Multi-Unit Floorplan Segmentation  
 **Dataset:** CubiCasa5k  
-**Last Updated:** September 7, 2026  
+**Last Updated:** September 8, 2026  
 
 ---
 
 ## 1. Quick Reference: Results File to Experiment Mapping
 
-| Result File | Experiment Name | Model | Backbone | Key Hyperparameters | Date Generated | Status / Key Metric |
-| :--- | :--- | :---: | :---: | :--- | :---: | :--- |
-| [`test_kfold_cab1_EfficientNetB4_20260907-075825.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab1_EfficientNetB4_20260907-075825.txt) | **CAB1 B4 10-Fold Test (Official)** | CAB1 | `EfficientNetB4` | `hhdc=7`, `cam=5`, `aaf=[2,4]` | 2026-09-07 | **Official 10-Fold Test**: **94.52% ± 0.94%** Test Acc, **69.19% No-BG Acc** (Project Record!) |
-| [`test_kfold_cab2_EfficientNetB4_20260907-082006.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab2_EfficientNetB4_20260907-082006.txt) | **CAB2 B4 10-Fold Test (Official)** | CAB2 | `EfficientNetB4` | `hhdc=False`, `cam=3`, `aaf=[2,4]` | 2026-09-07 | **Official 10-Fold Test**: **94.14% ± 0.86%** Test Acc, **66.46% No-BG Acc** |
-| [`test_kfold_cubicasa5k_VGG16_20260907-082742.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cubicasa5k_VGG16_20260907-082742.txt) | **CubiCasa5k VGG16 10-Fold Test** | CubiCasa | `VGG16` | Multi-task heatmap heads | 2026-09-07 | Verified Benchmark: 95.61% ± 0.28% Test Acc, 61.65% No-BG Acc |
-| [`test_kfold_zeng_VGG16_20260907-083051.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_zeng_VGG16_20260907-083051.txt) | **Zeng VGG16 10-Fold Test** | Zeng | `VGG16` | Multi-dilation feature aggregation | 2026-09-07 | Verified Benchmark: 95.19% ± 0.22% Test Acc, 58.09% No-BG Acc |
-| [`logs/kfold_cab1_b4.log`](file:///workspaces/multi-unit-floorplan/logs/kfold_cab1_b4.log) | **CAB1 B4 10-Fold Training** | CAB1 | `EfficientNetB4` | `hhdc=7`, `cam=5`, `aaf=[2,4]` | 2026-09-01 | **10-Fold CV Finished**: 94.86% ± 0.71% Val Acc, 1.9073 ± 0.2106 Val Loss (All 10 Folds converged) |
-| [`logs/kfold_cab2_b4.log`](file:///workspaces/multi-unit-floorplan/logs/kfold_cab2_b4.log) | **CAB2 B4 10-Fold Training** | CAB2 | `EfficientNetB4` | `hhdc=False`, `cam=3`, `aaf=[2,4]` | 2026-09-01 | **10-Fold CV Finished**: 94.46% ± 0.78% Val Acc, 2.0108 ± 0.1983 Val Loss (All 10 Folds converged) |
-| [`test_kfold_cab1_cubicasa_20260902-002106.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab1_cubicasa_20260902-002106.txt) | CAB1 10-Fold Test (Sep 2 Post-Run Hook) | CAB1 | `EfficientNetV2S` | `hhdc=7`, `cam=5`, `aaf=[2,4]` | 2026-09-02 | Unfiltered hook evaluated older V2S: 92.42% Test Acc, 43.00% No-BG Acc |
-| [`test_kfold_cab2_cubicasa_20260902-063522.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab2_cubicasa_20260902-063522.txt) | CAB2 10-Fold Test (Sep 2 Post-Run Hook) | CAB2 | `EfficientNetV2S` | `hhdc=False`, `cam=3`, `aaf=[2,4]` | 2026-09-02 | Unfiltered hook evaluated older V2S: 93.33% Test Acc, 54.18% No-BG Acc |
-| [`test_kfold_cab1_20260830-211306.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab1_20260830-211306.txt) | **CAB1 V2S 10-Fold Test (Official)** | CAB1 | `EfficientNetV2S` | `hhdc=7`, `cam=5`, `aaf=[2,4]` | 2026-08-30 | **Official V2S**: 93.79% ± 0.98% Test Acc, 63.89% No-BG Acc |
-| [`test_kfold_cab2_20260829-202421.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab2_20260829-202421.txt) | **CAB2 V2S 10-Fold Test (Official)** | CAB2 | `EfficientNetV2S` | `hhdc=False`, `cam=3`, `aaf=[2,4]` | 2026-08-29 | **Official V2S**: 93.95% ± 1.69% Test Acc, 63.06% No-BG Acc |
-| [`test_kfold_cab1_20260829-204602.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab1_20260829-204602.txt) | CAB1 V2S 10-Fold (Intermediate) | CAB1 | `EfficientNetV2S` | `hhdc=7`, `cam=5`, `aaf=[2,4]` | 2026-08-29 | Intermediate (evaluated during Fold 4 retraining) |
-| [`test_kfold_cab1_20260804-105154.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab1_20260804-105154.txt) | CAB1 B2 10-Fold (Baseline) | CAB1 | `EfficientNetB2` | `hhdc=5`, `cam=3`, `aaf=[2,4]` | 2026-08-04 | Baseline: 94.64% Test Acc (0% door/window IoU) |
-| [`test_kfold_cab2_20260804-112730.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab2_20260804-112730.txt) | CAB2 B2 10-Fold (Baseline) | CAB2 | `EfficientNetB2` | `hhdc=5`, `cam=3`, `aaf=[2,4]` | 2026-08-04 | Baseline: 94.68% Test Acc |
-| [`test_kfold_cubicasa5k_20260804-115310.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cubicasa5k_20260804-115310.txt) | CubiCasa5k 10-Fold (Paper Ref) | CubiCasa | `VGG16` | Multi-task heatmap heads | 2026-08-04 | Benchmark Reference: 95.61% Test Acc, 61.65% No-BG Acc |
-| [`test_kfold_zeng_20260804-121359.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_zeng_20260804-121359.txt) | Zeng 10-Fold (Paper Ref) | Zeng | `VGG16` | Multi-dilation feature aggregation | 2026-08-04 | Benchmark Reference: 95.19% Test Acc, 58.09% No-BG Acc |
-| [`ablation_cab1_fold0_20260817-032305.txt`](file:///workspaces/multi-unit-floorplan/results/ablation_cab1_fold0_20260817-032305.txt) | CAB1 Fold 0 Backbone Ablation | CAB1 | `B0, B2, B3, B4` | `hhdc=5`, `cam=3`, `aaf=[2,4]` | 2026-08-17 | **B4 Best Backbone** (1.5401 val loss) |
-| [`ablation_cab1_fold0_20260822-032911.txt`](file:///workspaces/multi-unit-floorplan/results/ablation_cab1_fold0_20260822-032911.txt) | CAB1 Fold 0 Context & CAM Ablation | CAB1 | `EfficientNetB2` | `hhdc={0,3,7}`, `cam={0,1,5}` | 2026-08-22 | **`hhdc=7`** (1.5576 loss), **`cam=5`** (1.5552 loss) Best |
-| [`ablation_cab2_fold0_20260818-175528.txt`](file:///workspaces/multi-unit-floorplan/results/ablation_cab2_fold0_20260818-175528.txt) | CAB2 Fold 0 Backbone Ablation | CAB2 | `B0, B2, B3, B4` | `hhdc=5`, `cam=3`, `aaf=[2,4]` | 2026-08-18 | **B4 Best Backbone** (1.5328 val loss) |
-| [`ablation_cab2_fold0_20260821-191722.txt`](file:///workspaces/multi-unit-floorplan/results/ablation_cab2_fold0_20260821-191722.txt) | CAB2 Fold 0 Context & CAM Ablation | CAB2 | `EfficientNetB2` | `hhdc={0,3,7}`, `cam={0,1,5}` | 2026-08-21 | **`no_hhdc`** (1.5462 loss), **`cam=3`** (1.5481 loss) Best |
-| [`hyperparameter_recommendations.md`](file:///workspaces/multi-unit-floorplan/results/hyperparameter_recommendations.md) | V1/V2 Hyperparameter Analysis | All | `B2, B4, V2S` | All configurations & scripts | 2026-09-07 | Master guide for V1 & V2 setups |
-| [`experiment_analysis_and_kfold_evaluation.md`](file:///workspaces/multi-unit-floorplan/results/experiment_analysis_and_kfold_evaluation.md) | 10-Fold Post-Mortem & Multi-Model Comparison | All | `B4, V2S, VGG16` | Full class-by-class comparison | 2026-09-07 | Comprehensive performance analysis |
-| [`TEST_EVALUATION_GUIDE.md`](file:///workspaces/multi-unit-floorplan/results/TEST_EVALUATION_GUIDE.md) | Test Set Evaluation Runbook & Rebuild Guide | All | `B4, V2S, B2, VGG16` | Execution instructions on `test.txt` | 2026-09-07 | Rebuild instructions & post-rebuild runner |
+| Result File | Experiment Name | Model | Backbone | Split | Key Hyperparameters | Date Generated | Status / Key Metric |
+| :--- | :--- | :---: | :---: | :---: | :--- | :---: | :--- |
+| [`test_kfold_cab1_EfficientNetB4_20260908-075715.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab1_EfficientNetB4_20260908-075715.txt) | **CAB1 B4 10-Fold Test (Audit Verified)** | CAB1 | `EfficientNetB4` | Test | `hhdc=7`, `cam=5`, `aaf=[2,4]` | 2026-09-08 | **94.52% ± 0.94%** Test Acc, **69.19% No-BG Acc** (Project Record!) |
+| [`val_kfold_cab1_EfficientNetB4_20260908-073505.txt`](file:///workspaces/multi-unit-floorplan/results/val_kfold_cab1_EfficientNetB4_20260908-073505.txt) | **CAB1 B4 10-Fold Val (Out-Of-Fold)** | CAB1 | `EfficientNetB4` | Val | `hhdc=7`, `cam=5`, `aaf=[2,4]` | 2026-09-08 | **94.64% ± 0.88%** Val Acc, **69.55% No-BG Acc** (4,600 samples) |
+| [`test_kfold_cab2_EfficientNetB4_20260908-075647.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab2_EfficientNetB4_20260908-075647.txt) | **CAB2 B4 10-Fold Test (Audit Verified)** | CAB2 | `EfficientNetB4` | Test | `hhdc=False`, `cam=3`, `aaf=[2,4]` | 2026-09-08 | **94.14% ± 0.86%** Test Acc, **66.45% No-BG Acc** |
+| [`val_kfold_cab2_EfficientNetB4_20260908-073515.txt`](file:///workspaces/multi-unit-floorplan/results/val_kfold_cab2_EfficientNetB4_20260908-073515.txt) | **CAB2 B4 10-Fold Val (Out-Of-Fold)** | CAB2 | `EfficientNetB4` | Val | `hhdc=False`, `cam=3`, `aaf=[2,4]` | 2026-09-08 | **94.26% ± 0.80%** Val Acc, **66.68% No-BG Acc** |
+| [`test_kfold_cab1_EfficientNetV2S_20260908-080916.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab1_EfficientNetV2S_20260908-080916.txt) | **CAB1 V2S 10-Fold Test (Audit Verified)** | CAB1 | `EfficientNetV2S` | Test | `hhdc=7`, `cam=5`, `aaf=[2,4]` | 2026-09-08 | **93.79% ± 0.99%** Test Acc, **63.88% No-BG Acc** |
+| [`val_kfold_cab1_EfficientNetV2S_20260908-074843.txt`](file:///workspaces/multi-unit-floorplan/results/val_kfold_cab1_EfficientNetV2S_20260908-074843.txt) | **CAB1 V2S 10-Fold Val (Out-Of-Fold)** | CAB1 | `EfficientNetV2S` | Val | `hhdc=7`, `cam=5`, `aaf=[2,4]` | 2026-09-08 | **93.99% ± 0.89%** Val Acc, **64.72% No-BG Acc** |
+| [`test_kfold_cab2_EfficientNetV2S_20260908-075927.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab2_EfficientNetV2S_20260908-075927.txt) | **CAB2 V2S 10-Fold Test (Audit Verified)** | CAB2 | `EfficientNetV2S` | Test | `hhdc=False`, `cam=3`, `aaf=[2,4]` | 2026-09-08 | **93.95% ± 1.69%** Test Acc, **63.05% No-BG Acc** |
+| [`val_kfold_cab2_EfficientNetV2S_20260908-073942.txt`](file:///workspaces/multi-unit-floorplan/results/val_kfold_cab2_EfficientNetV2S_20260908-073942.txt) | **CAB2 V2S 10-Fold Val (Out-Of-Fold)** | CAB2 | `EfficientNetV2S` | Val | `hhdc=False`, `cam=3`, `aaf=[2,4]` | 2026-09-08 | **94.10% ± 1.56%** Val Acc, **63.42% No-BG Acc** |
+| [`test_kfold_cubicasa5k_VGG16_20260908-072527.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cubicasa5k_VGG16_20260908-072527.txt) | **CubiCasa5k VGG16 10-Fold Test (Audit)** | CubiCasa | `VGG16` | Test | Multi-task heatmap heads | 2026-09-08 | 95.61% ± 0.28% Test Acc, 61.65% No-BG Acc, 51.89% Macro IoU |
+| [`val_kfold_cubicasa5k_VGG16_20260908-071805.txt`](file:///workspaces/multi-unit-floorplan/results/val_kfold_cubicasa5k_VGG16_20260908-071805.txt) | **CubiCasa5k VGG16 10-Fold Val (Out-Of-Fold)** | CubiCasa | `VGG16` | Val | Multi-task heatmap heads | 2026-09-08 | **96.42% ± 0.36%** Val Acc, **66.33% No-BG Acc**, 58.95% Macro IoU |
+| [`test_kfold_zeng_VGG16_20260908-071630.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_zeng_VGG16_20260908-071630.txt) | **Zeng VGG16 10-Fold Test (Audit)** | Zeng | `VGG16` | Test | Multi-dilation feature aggregation | 2026-09-08 | 95.19% ± 0.22% Test Acc, 58.08% No-BG Acc, 50.37% Macro IoU |
+| [`val_kfold_zeng_VGG16_20260908-071329.txt`](file:///workspaces/multi-unit-floorplan/results/val_kfold_zeng_VGG16_20260908-071329.txt) | **Zeng VGG16 10-Fold Val (Out-Of-Fold)** | Zeng | `VGG16` | Val | Multi-dilation feature aggregation | 2026-09-08 | **95.79% ± 0.32%** Val Acc, **60.86% No-BG Acc**, 54.07% Macro IoU |
+| [`test_kfold_cab1_EfficientNetB4_20260907-075825.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab1_EfficientNetB4_20260907-075825.txt) | CAB1 B4 10-Fold Test (Pre-Audit) | CAB1 | `EfficientNetB4` | Test | `hhdc=7`, `cam=5`, `aaf=[2,4]` | 2026-09-07 | Pre-audit evaluation run |
+| [`test_kfold_cab2_EfficientNetB4_20260907-082006.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab2_EfficientNetB4_20260907-082006.txt) | CAB2 B4 10-Fold Test (Pre-Audit) | CAB2 | `EfficientNetB4` | Test | `hhdc=False`, `cam=3`, `aaf=[2,4]` | 2026-09-07 | Pre-audit evaluation run |
+| [`logs/kfold_cab1_b4.log`](file:///workspaces/multi-unit-floorplan/logs/kfold_cab1_b4.log) | **CAB1 B4 10-Fold Training** | CAB1 | `EfficientNetB4` | Train | `hhdc=7`, `cam=5`, `aaf=[2,4]` | 2026-09-01 | **10-Fold CV Finished**: 94.86% ± 0.71% Val Acc, 1.9073 ± 0.2106 Val Loss |
+| [`logs/kfold_cab2_b4.log`](file:///workspaces/multi-unit-floorplan/logs/kfold_cab2_b4.log) | **CAB2 B4 10-Fold Training** | CAB2 | `EfficientNetB4` | Train | `hhdc=False`, `cam=3`, `aaf=[2,4]` | 2026-09-01 | **10-Fold CV Finished**: 94.46% ± 0.78% Val Acc, 2.0108 ± 0.1983 Val Loss |
+| [`test_kfold_cab1_20260830-211306.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab1_20260830-211306.txt) | CAB1 V2S 10-Fold Test (Pre-Audit) | CAB1 | `EfficientNetV2S` | Test | `hhdc=7`, `cam=5`, `aaf=[2,4]` | 2026-08-30 | Pre-audit V2S evaluation |
+| [`test_kfold_cab2_20260829-202421.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab2_20260829-202421.txt) | CAB2 V2S 10-Fold Test (Pre-Audit) | CAB2 | `EfficientNetV2S` | Test | `hhdc=False`, `cam=3`, `aaf=[2,4]` | 2026-08-29 | Pre-audit V2S evaluation |
+| [`test_kfold_cab1_20260804-105154.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab1_20260804-105154.txt) | CAB1 B2 10-Fold (Baseline) | CAB1 | `EfficientNetB2` | Test | `hhdc=5`, `cam=3`, `aaf=[2,4]` | 2026-08-04 | Baseline: 94.64% Test Acc (0% door/window IoU) |
+| [`test_kfold_cab2_20260804-112730.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab2_20260804-112730.txt) | CAB2 B2 10-Fold (Baseline) | CAB2 | `EfficientNetB2` | Test | `hhdc=5`, `cam=3`, `aaf=[2,4]` | 2026-08-04 | Baseline: 94.68% Test Acc |
+| [`ablation_cab1_fold0_20260817-032305.txt`](file:///workspaces/multi-unit-floorplan/results/ablation_cab1_fold0_20260817-032305.txt) | CAB1 Fold 0 Backbone Ablation | CAB1 | `B0, B2, B3, B4` | Val | `hhdc=5`, `cam=3`, `aaf=[2,4]` | 2026-08-17 | **B4 Best Backbone** (1.5401 val loss) |
+| [`ablation_cab1_fold0_20260822-032911.txt`](file:///workspaces/multi-unit-floorplan/results/ablation_cab1_fold0_20260822-032911.txt) | CAB1 Fold 0 Context & CAM Ablation | CAB1 | `EfficientNetB2` | Val | `hhdc={0,3,7}`, `cam={0,1,5}` | 2026-08-22 | **`hhdc=7`** (1.5576 loss), **`cam=5`** (1.5552 loss) Best |
+| [`ablation_cab2_fold0_20260818-175528.txt`](file:///workspaces/multi-unit-floorplan/results/ablation_cab2_fold0_20260818-175528.txt) | CAB2 Fold 0 Backbone Ablation | CAB2 | `B0, B2, B3, B4` | Val | `hhdc=5`, `cam=3`, `aaf=[2,4]` | 2026-08-18 | **B4 Best Backbone** (1.5328 val loss) |
+| [`ablation_cab2_fold0_20260821-191722.txt`](file:///workspaces/multi-unit-floorplan/results/ablation_cab2_fold0_20260821-191722.txt) | CAB2 Fold 0 Context & CAM Ablation | CAB2 | `EfficientNetB2` | Val | `hhdc={0,3,7}`, `cam={0,1,5}` | 2026-08-21 | **`no_hhdc`** (1.5462 loss), **`cam=3`** (1.5481 loss) Best |
+| [`hyperparameter_recommendations.md`](file:///workspaces/multi-unit-floorplan/results/hyperparameter_recommendations.md) | V1/V2 Hyperparameter Analysis | All | `B2, B4, V2S` | All | Master recommendations & audit findings | 2026-09-08 | Master guide for V1 & V2 setups |
+| [`experiment_analysis_and_kfold_evaluation.md`](file:///workspaces/multi-unit-floorplan/results/experiment_analysis_and_kfold_evaluation.md) | 10-Fold Post-Mortem & Multi-Model Comparison | All | `B4, V2S, VGG16` | Val & Test | Full class-by-class comparison | 2026-09-08 | Comprehensive performance analysis |
+| [`TEST_EVALUATION_GUIDE.md`](file:///workspaces/multi-unit-floorplan/results/TEST_EVALUATION_GUIDE.md) | Evaluation Runbook & Rebuild Guide | All | `B4, V2S, B2, VGG16` | Val & Test | Execution instructions for 4 GPUs | 2026-09-08 | 4-GPU parallel evaluation runbook |
 
 ---
 
 ## 2. Detailed Experiment Profiles & Resource Tracking
 
-### 2.1 EfficientNetV1 Best Setup (B4) 10-Fold Cross-Validation Runs (August 30 – September 1, 2026)
+### 2.1 Full 4-GPU Cross-Validation & Test Re-Evaluation with Audit Fixes (September 8, 2026)
+
+* **Status:** **Completed Successfully** across all 6 architectures for both **Out-of-Fold Validation (4,600 floorplans)** and the **Official Test Set (400 floorplans)**.
+* **Runner Script:** [`run_all_evaluations.sh`](file:///workspaces/multi-unit-floorplan/run_all_evaluations.sh) executing concurrently across all 4 NVIDIA A100 GPUs:
+  * **GPU 0:** CAB1 EfficientNetB4 (Val & Test) → `logs/eval_cab1_b4.log`
+  * **GPU 1:** CAB2 EfficientNetB4 (Val & Test) → `logs/eval_cab2_b4.log`
+  * **GPU 2:** CubiCasa5k VGG16 → CAB1 EfficientNetV2S (Val & Test) → `logs/eval_cubicasa5k_vgg16.log`, `logs/eval_cab1_v2s.log`
+  * **GPU 3:** Zeng VGG16 → CAB2 EfficientNetV2S (Val & Test) → `logs/eval_zeng_vgg16.log`, `logs/eval_cab2_v2s.log`
+* **Fixes from CODEBASE_AUDIT.md in Effect:**
+  * **E-4:** Confusion matrix batch aggregation without batch-0 truncation.
+  * **E-5:** Epsilon division-by-zero guards ($\epsilon = 10^{-7}$).
+  * **E-6:** Frequency weighting (`fw`) normalized using ground-truth totals ($\text{TP} + \text{FN}$) instead of $\text{TP}$ alone.
+  * **D-1 & D-2:** Nearest-neighbor discrete mask interpolation and aspect-ratio preservation active in dataset pipelines.
+* **Results Artifacts Generated:**
+  * **CAB1 B4 Test:** [`results/test_kfold_cab1_EfficientNetB4_20260908-075715.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab1_EfficientNetB4_20260908-075715.txt) — **94.52% ± 0.94%** Test Acc, **69.19% No-BG Acc**
+  * **CAB1 B4 Val:** [`results/val_kfold_cab1_EfficientNetB4_20260908-073505.txt`](file:///workspaces/multi-unit-floorplan/results/val_kfold_cab1_EfficientNetB4_20260908-073505.txt) — **94.64% ± 0.88%** Val Acc, **69.55% No-BG Acc**
+  * **CAB2 B4 Test:** [`results/test_kfold_cab2_EfficientNetB4_20260908-075647.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab2_EfficientNetB4_20260908-075647.txt) — **94.14% ± 0.86%** Test Acc, **66.45% No-BG Acc**
+  * **CAB2 B4 Val:** [`results/val_kfold_cab2_EfficientNetB4_20260908-073515.txt`](file:///workspaces/multi-unit-floorplan/results/val_kfold_cab2_EfficientNetB4_20260908-073515.txt) — **94.26% ± 0.80%** Val Acc, **66.68% No-BG Acc**
+  * **CAB1 V2S Test:** [`results/test_kfold_cab1_EfficientNetV2S_20260908-080916.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab1_EfficientNetV2S_20260908-080916.txt) — **93.79% ± 0.99%** Test Acc, **63.88% No-BG Acc**
+  * **CAB1 V2S Val:** [`results/val_kfold_cab1_EfficientNetV2S_20260908-074843.txt`](file:///workspaces/multi-unit-floorplan/results/val_kfold_cab1_EfficientNetV2S_20260908-074843.txt) — **93.99% ± 0.89%** Val Acc, **64.72% No-BG Acc**
+  * **CAB2 V2S Test:** [`results/test_kfold_cab2_EfficientNetV2S_20260908-075927.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab2_EfficientNetV2S_20260908-075927.txt) — **93.95% ± 1.69%** Test Acc, **63.05% No-BG Acc**
+  * **CAB2 V2S Val:** [`results/val_kfold_cab2_EfficientNetV2S_20260908-073942.txt`](file:///workspaces/multi-unit-floorplan/results/val_kfold_cab2_EfficientNetV2S_20260908-073942.txt) — **94.10% ± 1.56%** Val Acc, **63.42% No-BG Acc**
+  * **CubiCasa5k Test:** [`results/test_kfold_cubicasa5k_VGG16_20260908-072527.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cubicasa5k_VGG16_20260908-072527.txt) — **95.61% ± 0.28%** Test Acc, **61.65% No-BG Acc**, 51.89% Macro IoU
+  * **CubiCasa5k Val:** [`results/val_kfold_cubicasa5k_VGG16_20260908-071805.txt`](file:///workspaces/multi-unit-floorplan/results/val_kfold_cubicasa5k_VGG16_20260908-071805.txt) — **96.42% ± 0.36%** Val Acc, **66.33% No-BG Acc**, 58.95% Macro IoU
+  * **Zeng Test:** [`results/test_kfold_zeng_VGG16_20260908-071630.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_zeng_VGG16_20260908-071630.txt) — **95.19% ± 0.22%** Test Acc, **58.08% No-BG Acc**, 50.37% Macro IoU
+  * **Zeng Val:** [`results/val_kfold_zeng_VGG16_20260908-071329.txt`](file:///workspaces/multi-unit-floorplan/results/val_kfold_zeng_VGG16_20260908-071329.txt) — **95.79% ± 0.32%** Val Acc, **60.86% No-BG Acc**, 54.07% Macro IoU
+
+---
+
+### 2.2 EfficientNetV1 Best Setup (B4) 10-Fold Cross-Validation Runs (August 30 – September 1, 2026)
 
 * **Status:** **Completed Successfully** across all 10 folds for both CAB1 and CAB2.
 * **Runner Script:** [`run_kfold_b4.sh`](file:///workspaces/multi-unit-floorplan/run_kfold_b4.sh) executed concurrently on **GPU 0** and **GPU 3**.
@@ -55,7 +89,7 @@
 
 ---
 
-### 2.2 Official EfficientNetB4 10-Fold Test Set Evaluation (September 7, 2026)
+### 2.3 Historical Pre-Audit EfficientNetB4 10-Fold Test Set Evaluation (September 7, 2026)
 
 * **Status:** **Completed Successfully** on NVIDIA A100 GPU across all 10 folds for CAB1 B4, CAB2 B4, CubiCasa5k (VGG16), and Zeng (VGG16).
 * **Runner Script:** [`run_test_evaluation.sh all 0`](file:///workspaces/multi-unit-floorplan/run_test_evaluation.sh)
@@ -131,14 +165,22 @@
 
 ## 3. Results File Naming Convention Standard
 
-To eliminate ambiguity across future experiment runs, all evaluation outputs generated by `kfold_patch/evaluate_kfold.py` now adhere to the self-describing schema:
+To eliminate ambiguity across experiment runs, all evaluation outputs generated by `kfold_patch/evaluate_kfold.py` adhere to the self-describing schema:
 
 ```
-results/test_kfold_{model}_{backbone}_{YYYYMMDD-HHMMSS}.txt
+results/{split}_kfold_{model}_{backbone}_{YYYYMMDD-HHMMSS}.txt
 ```
+
+Where:
+* `{split}`: Evaluation split (`test` for the 400-sample test set; `val` for 10-fold out-of-fold cross-validation on 4,600 samples)
+* `{model}`: Model architecture type (`cab1`, `cab2`, `cubicasa5k`, `zeng`)
+* `{backbone}`: Encoder network (`EfficientNetB4`, `EfficientNetV2S`, `EfficientNetB2`, `VGG16`)
+* `{YYYYMMDD-HHMMSS}`: Timestamp of evaluation completion
 
 Each generated file header explicitly includes:
 * `Model`: Model architecture type (`cab1`, `cab2`, `cubicasa5k`, `zeng`)
 * `Backbone`: Encoder network (`EfficientNetB4`, `EfficientNetV2S`, `EfficientNetB2`, `VGG16`)
 * `Experiment Name`: Configured experiment label
+* `Dataset`: Dataset evaluated (`cubicasa5k`)
+* `Split`: Evaluated dataset split (`test` or `val`)
 * `Fold Checkpoint Sources`: Full paths to each fold model directory evaluated.

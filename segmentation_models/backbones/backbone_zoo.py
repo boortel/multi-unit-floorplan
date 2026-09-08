@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from tensorflow.keras.applications import *
+from tensorflow.keras.layers import BatchNormalization
 from tensorflow.keras.models import Model
 
 from .intern_image_backbone import InternImage
@@ -48,26 +49,26 @@ layer_cadidates = {
     'block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation',
     'top_activation'),
     'EfficientNetV2B0': (
-    'block1a_project_activation', 'block2b_add', 'block4a_expand_activation', 'block6a_expand_activation',
-    'top_activation'),
+        'block1a_project_activation', 'block2b_expand_activation', 'block3b_expand_activation', 'block5e_expand_activation',
+        'top_activation'),
     'EfficientNetV2B1': (
-    'block1b_add', 'block2c_add', 'block4a_expand_activation', 'block6a_expand_activation',
-    'top_activation'),
+        'block1b_project_activation', 'block2c_expand_activation', 'block3c_expand_activation', 'block5f_expand_activation',
+        'top_activation'),
     'EfficientNetV2B2': (
-    'block1b_add', 'block2c_add', 'block4a_expand_activation', 'block6a_expand_activation',
-    'top_activation'),
+        'block1b_project_activation', 'block2c_expand_activation', 'block3c_expand_activation', 'block5f_expand_activation',
+        'top_activation'),
     'EfficientNetV2B3': (
-    'block1b_add', 'block2c_add', 'block4a_expand_activation', 'block6a_expand_activation',
-    'top_activation'),
+        'block1b_project_activation', 'block2c_expand_activation', 'block3c_expand_activation', 'block5g_expand_activation',
+        'top_activation'),
     'EfficientNetV2S': (
-    'block1b_add', 'block2d_add', 'block4a_expand_activation', 'block6a_expand_activation',
-    'top_activation'),
+        'block1b_project_activation', 'block2d_expand_activation', 'block3d_expand_activation', 'block5i_expand_activation',
+        'top_activation'),
     'EfficientNetV2M': (
-    'block1c_add', 'block2e_add', 'block4a_expand_activation', 'block6a_expand_activation',
-    'top_activation'),
+        'block1c_project_activation', 'block2e_expand_activation', 'block3e_expand_activation', 'block5n_expand_activation',
+        'top_activation'),
     'EfficientNetV2L': (
-    'block1d_add', 'block2g_add', 'block4a_expand_activation', 'block6a_expand_activation',
-    'top_activation'),
+        'block1d_project_activation', 'block2g_expand_activation', 'block3g_expand_activation', 'block5s_expand_activation',
+        'top_activation'),
     'InternImage': ('level0_norm', 'level1_norm', 'level2_norm', 'level3_norm')}
 
 
@@ -140,5 +141,12 @@ def backbone_zoo(backbone_name, weights, input_tensor, depth, freeze_backbone, f
 
     if freeze_backbone:
         model = freeze_model(model, freeze_batch_norm=freeze_batch_norm)
+    elif freeze_batch_norm:
+        # A-5 fix: freeze BN layers even when backbone is not frozen (useful with small batch sizes)
+        model = freeze_model(model, freeze_batch_norm=True)
+        # Unfreeze all non-BN layers so only BN stays frozen
+        for layer in model.layers:
+            if not isinstance(layer, BatchNormalization):
+                layer.trainable = True
 
     return model

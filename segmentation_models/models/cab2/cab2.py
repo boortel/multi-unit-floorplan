@@ -79,9 +79,11 @@ def AM(X, channel, activation, fused_layers, encoder_threshold, ratio=8, use_hhd
         # X = concatenate([X, channel_feature, spatial_feature], axis=-1) # TODO maybe add X here
         X = concatenate([channel_feature, spatial_feature], axis=-1)
     elif use_cam == 4:
-        X = CAM(channel_c, ratio)(X_c)
+        # A-3 fix: use full `channel` instead of channel_c (=channel/2) so CONV_stack gets expected input dims
+        X = CAM(channel, ratio)(X_c)
     elif use_cam == 5:
-        X = SAM3(channel_s, False)(X_s)
+        # A-3 fix: use full `channel` instead of channel_s (=channel/2) so CONV_stack gets expected input dims
+        X = SAM3(channel, False)(X_s)
     X = CONV_stack(X, channel, kernel_size=3, stack_num=1,
                    activation=activation, batch_norm=True, name='{}_am_conv'.format(name),
                    enhance_skeleton=True, direction_aware=False)

@@ -3,7 +3,7 @@
 **Dataset:** CubiCasa5k  
 **Models:** CAB1 & CAB2  
 **Backbone Architectures:** EfficientNetV1 (B4 Best Setup) & EfficientNetV2 (V2S)  
-**Date:** September 7, 2026  
+**Date:** September 8, 2026  
 
 ---
 
@@ -15,8 +15,8 @@ Based on the single-fold (Fold 0) architecture ablation search across backbone s
 
 | Hyperparameter | Baseline (B2) | Best EfficientNetV1 Setup (CAB1) | Best EfficientNetV1 Setup (CAB2) | EfficientNetV2 Setup (CAB1) | EfficientNetV2 Setup (CAB2) | Empirical Validation & Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Encoder Backbone** | `EfficientNetB2` | **`EfficientNetB4`** | **`EfficientNetB4`** | **`EfficientNetV2S`** | **`EfficientNetV2S`** | **10-Fold CV & Test Verified**: B4 achieves top validation accuracy (CAB1: 94.86%, CAB2: 94.46%) and project-record test non-background accuracy (CAB1: **69.19%**, CAB2: **66.46%**). |
-| **HHDC Module** | `hhdc = 5` | **`hhdc = 7`** | **`hhdc = False`** | **`hhdc = 7`** | **`hhdc = False`** | **10-Fold CV & Test Verified**: CAB1 benefits from expanded receptive field (60.64% walls IoU, 53.92% windows IoU); CAB2 avoids skip redundancy. |
+| **Encoder Backbone** | `EfficientNetB2` | **`EfficientNetB4`** | **`EfficientNetB4`** | **`EfficientNetV2S`** | **`EfficientNetV2S`** | **10-Fold CV & Test Verified**: B4 achieves top validation accuracy (In-training CAB1: 94.86%, CAB2: 94.46%; Out-of-fold CAB1: 94.64%, CAB2: 94.26%) and project-record test non-background accuracy (CAB1: **69.19%**, CAB2: **66.45%**). |
+| **HHDC Module** | `hhdc = 5` | **`hhdc = 7`** | **`hhdc = False`** | **`hhdc = 7`** | **`hhdc = False`** | **10-Fold CV & Test Verified**: CAB1 benefits from expanded receptive field (60.63% walls IoU, 53.92% windows IoU); CAB2 avoids skip redundancy. |
 | **CAM Module** | `cam = 3` | **`cam = 5`** | **`cam = 3`** | **`cam = 5`** | **`cam = 3`** | **10-Fold CV & Test Verified**: Scale 5 optimal for CAB1; scale 3 optimal for CAB2. |
 | **AAF Module** | `aaf = [2, 4]` | **`aaf = [2, 4]`** | **`aaf = [2, 4]`** | **`aaf = [2, 4]`** | **`aaf = [2, 4]`** | Multi-dilation adaptive affinity supervision across spatial neighborhoods. |
 | **Decoder Filters** | `[32, 64, 128, 256, 512]` | `[32, 64, 128, 256, 512]` | `[32, 64, 128, 256, 512]` | `[32, 64, 128, 256, 512]` | `[32, 64, 128, 256, 512]` | Balances capacity, GPU memory footprint, and boundary resolution. |
@@ -183,21 +183,39 @@ The 10-fold cross-validation runs for both CAB1 and CAB2 using the optimal Effic
   * **Mean Val Categorical Accuracy:** **0.9446 ± 0.0078** (94.46% ± 0.78%)
   * Checkpoints: `models/cab2_cab2_eval_cubicasa_b4_EfficientNetB4_32,64,128,256,512_cubicasa5k_20260830-214426/0` through `models/..._20260901-131551/9` (all 10 folds successfully serialized)
 
-### 5.2 Official 10-Fold Test Set Evaluation (September 7, 2026)
+### 5.2 Official 10-Fold Test & Out-of-Fold Validation Set Evaluation (September 8, 2026)
 
-Evaluated on the 400 test images from `data/tfrecords/cubicasa5k/cubicasa5k_test.tfrecords` via [`run_test_evaluation.sh all 0`](file:///workspaces/multi-unit-floorplan/run_test_evaluation.sh) on an NVIDIA A100 GPU (`logs/test_eval_all_20260907-073649.log`):
+Evaluated across all 10 folds on the 400 test images from `data/tfrecords/cubicasa5k/cubicasa5k_test.tfrecords` and out-of-fold validation sets (4,600 images across 10 folds) via `run_all_evaluations.sh` on 4× NVIDIA A100 GPUs (`logs/eval_all_20260908-071110.log`) following audit fixes:
 
-* **CAB1 EfficientNetB4:** [`results/test_kfold_cab1_EfficientNetB4_20260907-075825.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab1_EfficientNetB4_20260907-075825.txt)
-  * **Mean Test Accuracy:** **94.52% ± 0.94%**
-  * **Non-Background Accuracy:** **69.19%** (**Project Record** — outperforming CubiCasa5k 61.65% and Zeng 58.09%)
-  * **Per-Class IoU:** Walls: **60.64%**, Windows: **53.92%**, Doors: **27.44%**, Stairs: **14.69%**, Railings: **9.16%**
+* **CAB1 EfficientNetB4:**
+  * **Test Result:** [`results/test_kfold_cab1_EfficientNetB4_20260908-075715.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab1_EfficientNetB4_20260908-075715.txt)
+  * **Validation Result:** [`results/val_kfold_cab1_EfficientNetB4_20260908-073505.txt`](file:///workspaces/multi-unit-floorplan/results/val_kfold_cab1_EfficientNetB4_20260908-073505.txt)
+  * **Mean Test Accuracy:** **94.52% ± 0.94%** (Out-of-Fold Val: **94.64% ± 0.88%**)
+  * **Non-Background Accuracy:** **69.19%** (**Project Record** — outperforming CubiCasa5k 61.65% and Zeng 58.08%)
+  * **Per-Class IoU (Test):** Walls: **60.63%**, Windows: **53.92%**, Doors: **27.43%**, Stairs: **14.69%**, Railings: **9.16%**
   * **Macro IoU:** **43.47%** (Excl. Background: **33.17%**)
 
-* **CAB2 EfficientNetB4:** [`results/test_kfold_cab2_EfficientNetB4_20260907-082006.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab2_EfficientNetB4_20260907-082006.txt)
-  * **Mean Test Accuracy:** **94.14% ± 0.86%**
-  * **Non-Background Accuracy:** **66.46%**
-  * **Per-Class IoU:** Walls: **59.19%**, Windows: **47.80%**, Doors: **19.35%**, Stairs: **9.88%**, Railings: **7.47%**
-  * **Macro IoU:** **39.72%** (Excl. Background: **28.74%**)
+* **CAB2 EfficientNetB4:**
+  * **Test Result:** [`results/test_kfold_cab2_EfficientNetB4_20260908-075647.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab2_EfficientNetB4_20260908-075647.txt)
+  * **Validation Result:** [`results/val_kfold_cab2_EfficientNetB4_20260908-073515.txt`](file:///workspaces/multi-unit-floorplan/results/val_kfold_cab2_EfficientNetB4_20260908-073515.txt)
+  * **Mean Test Accuracy:** **94.14% ± 0.86%** (Out-of-Fold Val: **94.26% ± 0.80%**)
+  * **Non-Background Accuracy:** **66.45%** (Out-of-Fold Val: **66.68%**)
+  * **Per-Class IoU (Test):** Walls: **59.18%**, Windows: **47.80%**, Doors: **19.35%**, Stairs: **9.87%**, Railings: **7.47%**
+  * **Macro IoU:** **39.72%** (Excl. Background: **28.73%**)
+
+* **CAB1 EfficientNetV2S:**
+  * **Test Result:** [`results/test_kfold_cab1_EfficientNetV2S_20260908-080916.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab1_EfficientNetV2S_20260908-080916.txt)
+  * **Validation Result:** [`results/val_kfold_cab1_EfficientNetV2S_20260908-074843.txt`](file:///workspaces/multi-unit-floorplan/results/val_kfold_cab1_EfficientNetV2S_20260908-074843.txt)
+  * **Mean Test Accuracy:** **93.79% ± 0.99%** (Out-of-Fold Val: **93.99% ± 0.89%**)
+  * **Non-Background Accuracy:** **63.88%** (Out-of-Fold Val: **64.72%**)
+  * **Macro IoU:** **35.63%** (Excl. Background: **23.88%**)
+
+* **CAB2 EfficientNetV2S:**
+  * **Test Result:** [`results/test_kfold_cab2_EfficientNetV2S_20260908-075927.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab2_EfficientNetV2S_20260908-075927.txt)
+  * **Validation Result:** [`results/val_kfold_cab2_EfficientNetV2S_20260908-073942.txt`](file:///workspaces/multi-unit-floorplan/results/val_kfold_cab2_EfficientNetV2S_20260908-073942.txt)
+  * **Mean Test Accuracy:** **93.95% ± 1.69%** (Out-of-Fold Val: **94.10% ± 1.56%**)
+  * **Non-Background Accuracy:** **63.05%** (Out-of-Fold Val: **63.42%**)
+  * **Macro IoU:** **41.17%** (Excl. Background: **30.53%**)
 
 ### 5.3 Automated Post-Training Hook Note (September 2, 2026)
 Following training completion on September 1, the unconstrained post-run hook evaluated older V2S checkpoints on CPU before the dedicated GPU test harness was established:
@@ -205,12 +223,12 @@ Following training completion on September 1, the unconstrained post-run hook ev
 * CAB2: [`results/test_kfold_cab2_cubicasa_20260902-063522.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab2_cubicasa_20260902-063522.txt) (93.33% Test Acc)
 
 ### Key Conclusions & Architectural Verdict
-1. **Validation & Test Dominance:** EfficientNetB4 delivers both the highest validation accuracy (**94.86%** CAB1, **94.46%** CAB2) and the highest non-background test accuracy (**69.19%** CAB1, **66.46%** CAB2), beating EfficientNetV2S (+5.30% / +3.40%) and standard benchmarks (CubiCasa5k: 61.65%, Zeng: 58.09%).
-2. **Receptive Field Tuning:** Expanding the context receptive field via `hhdc=7` is confirmed decisively beneficial for CAB1 (driving Wall IoU to **60.64%** and Window IoU to **53.92%**), while disabling HHDC (`no_hhdc`) for CAB2 prevents skip feature dilution and stabilizes cross-fold convergence.
-3. **Detail Element Recovery:** CAB1 B4 achieves an unprecedented 4× surge in door IoU (**27.44%** vs 6.86% in CAB1 V2S) and more than doubles stairs IoU (**14.69%** vs 6.03%), proving that the B4 capacity combined with optimal attention modules successfully addresses previous small-object under-segmentation.
+1. **Validation & Test Dominance:** EfficientNetB4 delivers both the highest validation accuracy (**94.86%** in-training / **94.64%** out-of-fold CAB1, **94.46%** in-training / **94.26%** out-of-fold CAB2) and the highest non-background test accuracy (**69.19%** CAB1, **66.45%** CAB2), beating EfficientNetV2S (+5.31% / +3.40%) and standard benchmarks (CubiCasa5k: 61.65%, Zeng: 58.08%).
+2. **Receptive Field Tuning:** Expanding the context receptive field via `hhdc=7` is confirmed decisively beneficial for CAB1 (driving Wall IoU to **60.63%** and Window IoU to **53.92%**), while disabling HHDC (`no_hhdc`) for CAB2 prevents skip feature dilution and stabilizes cross-fold convergence.
+3. **Detail Element Recovery:** CAB1 B4 achieves an unprecedented 4× surge in door IoU (**27.43%** vs 6.86% in CAB1 V2S) and more than doubles stairs IoU (**14.69%** vs 6.03%), proving that the B4 capacity combined with optimal attention modules successfully addresses previous small-object under-segmentation.
 4. **Cross-Fold Stability:** Standard deviation across all 10 folds remained below 1.0% in test accuracy for both models (±0.94% CAB1, ±0.86% CAB2), validating optimizer stability with cosine decay warmup.
 5. **Decisive Superiority over Original CubiCasa5k:** While CubiCasa5k achieves high overall accuracy via conservative background bias, CAB1 and CAB2 are functionally superior for downstream CAD and 3D modeling by providing:
    * **+7.54% higher foreground pixel accuracy** (69.19% vs 61.65%).
    * **+13.24% higher wall recall** (79.78% vs 66.54%), cutting missed wall segments by 40% (20.22% vs 33.46% False Negative rate).
-   * **+4.46% higher window recall** (70.49% vs 66.03%).
+   * **+4.46% higher window recall** (70.48% vs 66.02%).
    * **Continuous wall boundaries** enforced by Adaptive Affinity Fields (`aaf=[2, 4]`), avoiding pinhole gaps common in CubiCasa5k.

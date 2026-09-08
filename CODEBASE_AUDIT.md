@@ -97,11 +97,11 @@ for i, v in enumerate(trainable_variables):
 
 ---
 
-### ⏳ T-3: Multi-Task Sigma Weighting Can Produce NaN/Inf Loss
+### ✅🔄 T-3: Multi-Task Sigma Weighting Can Produce NaN/Inf Loss
 
 **File:** [AutomaticWeightedLoss.py](file:///workspaces/multi-unit-floorplan/training/AutomaticWeightedLoss.py#L34)  
 **Line:** 34  
-**Status:** ⏳ Open — requires code change + retraining
+**Status:** ✅ Fixed (September 8, 2026) — requires retraining for effect
 
 ```python
 loss_sum += 0.5 / (self.sigmas[self.inds[i]] ** 2) * loss
@@ -139,11 +139,11 @@ loss_function = AutomaticWeightedLoss(loss_funcs, names, inds, dec, epochs, conf
 
 ---
 
-### ⏳ T-5: Train Dataset Size Unit Mismatch in LR Scheduler
+### ✅🔄 T-5: Train Dataset Size Unit Mismatch in LR Scheduler
 
 **File:** [train_config.py](file:///workspaces/multi-unit-floorplan/train_config.py#L460-L466)  
 **Lines:** 460–466  
-**Status:** ⏳ Open — requires code change + retraining
+**Status:** ✅ Fixed (September 8, 2026) — requires retraining for effect
 
 ```python
 train_dataset_size = tf.data.experimental.cardinality(train_dataset).numpy()
@@ -168,11 +168,11 @@ if train_dataset_size > 0:
 
 ---
 
-### ⏳ T-6: TensorBoard Loss Accumulation Never Averaged
+### ✅ T-6: TensorBoard Loss Accumulation Never Averaged
 
 **File:** [AutomaticWeightedLoss.py](file:///workspaces/multi-unit-floorplan/training/AutomaticWeightedLoss.py#L33)  
 **Lines:** 33, 70–73  
-**Status:** ⏳ Open — logging-only fix, no accuracy impact
+**Status:** ✅ Fixed (September 8, 2026) — logging-only fix, no accuracy impact
 
 ```python
 # Per step: accumulates batch mean loss
@@ -388,11 +388,11 @@ w = int(image.shape[1] * scale)
 
 ## 4. Model Architecture Issues
 
-### ⏳ A-1: SAM Receives `use_cam` Instead of `use_hhdc`
+### ✅🔄 A-1: SAM Receives `use_cam` Instead of `use_hhdc`
 
 **File:** [cab1/cab1.py](file:///workspaces/multi-unit-floorplan/segmentation_models/models/cab1/cab1.py#L75)  
 **Line:** 75  
-**Status:** ⏳ Open — latent, not reached in current best config
+**Status:** ✅ Fixed (September 8, 2026) — latent fix, not reached in current best config
 
 ```python
 spatial_feature = SAM(channel_s, use_cam)(X_s)
@@ -405,11 +405,11 @@ spatial_feature = SAM(channel_s, use_cam)(X_s)
 
 ---
 
-### ⏳ A-2: HHDC Ignores Its `dilations` Parameter
+### ✅🔄 A-2: HHDC Ignores Its `dilations` Parameter
 
 **File:** [cab1/cab1.py](file:///workspaces/multi-unit-floorplan/segmentation_models/models/cab1/cab1.py#L216-L226)  
 **Lines:** 216–226  
-**Status:** ⏳ Open — requires code change + retraining
+**Status:** ✅ Fixed (September 8, 2026) — requires retraining for effect
 
 ```python
 class HHDC(tf.keras.layers.Layer):
@@ -424,11 +424,11 @@ class HHDC(tf.keras.layers.Layer):
 
 ---
 
-### ⏳ A-3: CAB2 Channel Dimension Mismatch for `use_cam` 4 and 5
+### ✅🔄 A-3: CAB2 Channel Dimension Mismatch for `use_cam` 4 and 5
 
 **File:** [cab2/cab2.py](file:///workspaces/multi-unit-floorplan/segmentation_models/models/cab2/cab2.py#L81-L87)  
 **Lines:** 81–87  
-**Status:** ⏳ Open — latent, not reached in current best config
+**Status:** ✅ Fixed (September 8, 2026) — latent fix, not reached in current best config
 
 ```python
 elif use_cam == 4:
@@ -445,10 +445,10 @@ X = CONV_stack(X, channel, ...)            # ← expects input to project FROM ~
 
 ---
 
-### ⏳ A-4: Mixed Normalization: GroupNorm vs BatchNorm
+### ✅🔄 A-4: Mixed Normalization: GroupNorm vs BatchNorm
 
 **File:** [layer_utils.py](file:///workspaces/multi-unit-floorplan/segmentation_models/base/layer_utils.py)  
-**Status:** ⏳ Open — requires code change + retraining
+**Status:** ✅ Fixed (September 8, 2026) — requires retraining for effect
 
 | Code Path | Normalization Used |
 |:---|:---|
@@ -464,11 +464,11 @@ X = CONV_stack(X, channel, ...)            # ← expects input to project FROM ~
 
 ---
 
-### ⏳ A-5: `freeze_batch_norm` Ignored When Backbone Is Not Frozen
+### ✅🔄 A-5: `freeze_batch_norm` Ignored When Backbone Is Not Frozen
 
 **File:** [backbone_zoo.py](file:///workspaces/multi-unit-floorplan/segmentation_models/backbones/backbone_zoo.py#L141-L142)  
 **Lines:** 141–142  
-**Status:** ⏳ Open — requires code change + retraining
+**Status:** ✅ Fixed (September 8, 2026) — requires retraining for effect
 
 ```python
 if freeze_backbone:
@@ -505,11 +505,11 @@ for i in range(stack_num):
 
 ## 5. Post-Processing & Metric Bugs
 
-### ⏳ P-1: Hardcoded Global `type = 'multi'` in Post-Processing
+### ✅ P-1: Hardcoded Global `type = 'multi'` in Post-Processing
 
 **File:** [training/post_process.py](file:///workspaces/multi-unit-floorplan/training/post_process.py#L63)  
 **Line:** 63  
-**Status:** ⏳ Open — quick fix needed
+**Status:** ✅ Fixed (September 8, 2026) — immediate effect
 
 ```python
 type = 'multi'
@@ -519,11 +519,11 @@ type = 'multi'
 
 ---
 
-### ⏳ P-2: Post-Processing Memory Inefficiency
+### ✅ P-2: Post-Processing Memory Inefficiency
 
 **File:** [training/post_process.py](file:///workspaces/multi-unit-floorplan/training/post_process.py)  
 **Lines:** ~204, 207, 279  
-**Status:** ⏳ Open — performance improvement only
+**Status:** ✅ Fixed (September 8, 2026) — performance improvement only
 
 **Impact:** `process_tile` allocates full-image-sized zero arrays (`np.zeros(img.shape)`) for every small sub-tile, causing quadratic memory overhead.
 
@@ -626,10 +626,10 @@ The 812px resolution cap ([floorplans.py:L220-L222](file:///workspaces/multi-uni
 |:---:|:---:|:---:|:---|
 | T-1 | 🔴 | ✅🔄 | AAF epoch decay frozen → tf.Variable |
 | T-2 | 🟠 | ✅🔄 | Gradient reversal by name |
-| T-3 | 🟠 | ⏳ | Sigma log-space reparameterization |
+| T-3 | 🟠 | ✅🔄 | Sigma log-space reparameterization |
 | T-4 | 🟡 | ✅🔄 | TensorBoard log dir per fold |
-| T-5 | 🟡 | ⏳ | LR scheduler unit mismatch |
-| T-6 | 🔵 | ⏳ | TensorBoard loss averaging |
+| T-5 | 🟡 | ✅🔄 | LR scheduler unit mismatch |
+| T-6 | 🔵 | ✅ | TensorBoard loss averaging |
 | E-1 | 🔴 | ✅ | TTA probability averaging |
 | E-2 | 🟠 | ✅ | TTA one-hot depth |
 | E-3 | 🟠 | ✅ | Evaluate TTA unblocked |
@@ -638,13 +638,13 @@ The 812px resolution cap ([floorplans.py:L220-L222](file:///workspaces/multi-uni
 | E-6 | 🔵 | ✅ | Frequency weight fix |
 | D-1 | 🔴 | ✅🔄 | Mask nearest-neighbor resize |
 | D-2 | 🟠 | ✅🔄 | Aspect ratio preservation |
-| A-1 | 🟠 | ⏳ | SAM parameter mismatch (latent) |
-| A-2 | 🟡 | ⏳ | HHDC dilations ignored |
-| A-3 | 🟡 | ⏳ | CAB2 channel mismatch (latent) |
-| A-4 | 🟡 | ⏳ | Mixed normalization |
-| A-5 | 🔵 | ⏳ | BN freeze logic |
+| A-1 | 🟠 | ✅🔄 | SAM parameter mismatch (latent) |
+| A-2 | 🟡 | ✅🔄 | HHDC dilations honored |
+| A-3 | 🟡 | ✅🔄 | CAB2 channel mismatch (latent) |
+| A-4 | 🟡 | ✅🔄 | Unified GroupNorm normalization |
+| A-5 | 🔵 | ✅🔄 | BN freeze independent of backbone |
 | A-6 | 🔵 | ✅ | Stale T variable |
-| P-1 | 🟡 | ⏳ | Hardcoded post-processing type |
-| P-2 | 🔵 | ⏳ | Memory inefficiency |
+| P-1 | 🟡 | ✅ | Post-processing type parameterized |
+| P-2 | 🔵 | ✅ | Memory efficiency improved |
 
-**Total: 14 fixed ✅ / 8 open ⏳**
+**Total: 22 fixed ✅ / 0 open ⏳**

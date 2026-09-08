@@ -2,22 +2,36 @@
 **Project:** Multi-Unit Floorplan Segmentation  
 **Test Split Definition:** [`data/cubicasa5k/test.txt`](file:///workspaces/multi-unit-floorplan/data/cubicasa5k/test.txt) (400 floorplan samples)  
 **Serialized Dataset:** [`data/tfrecords/cubicasa5k/cubicasa5k_test.tfrecords`](file:///workspaces/multi-unit-floorplan/data/tfrecords/cubicasa5k/cubicasa5k_test.tfrecords) (400 records)  
-**Date:** September 7, 2026  
+**Date:** September 8, 2026  
 
 ---
 
 ## 1. Executive Summary & Evaluation Status
  
 ### 1.1 GPU Passthrough & Evaluation Execution
-NVIDIA GPU passthrough was successfully verified on device `GPU:0` (`NVIDIA A100-SXM4-40GB`, 40GB VRAM) with CUDA / cuDNN acceleration. The full 10-fold test evaluation across all primary architectures (CAB1 B4, CAB2 B4, CubiCasa5k VGG16, and Zeng VGG16) was executed on September 7, 2026 via [`run_test_evaluation.sh all 0`](file:///workspaces/multi-unit-floorplan/run_test_evaluation.sh), completing in ~54 minutes total wall-clock time.
+NVIDIA GPU passthrough was verified across all four physical `NVIDIA A100-SXM4-40GB` GPUs (GPUs 0, 1, 2, 3) with CUDA / cuDNN acceleration. 
 
-### 1.2 Evaluation Performance Summary
+Following the implementation of evaluation and data pipeline fixes in [`CODEBASE_AUDIT.md`](file:///workspaces/multi-unit-floorplan/CODEBASE_AUDIT.md) (E-4, E-5, E-6, D-1, D-2), a full concurrent evaluation of **both Out-of-Fold Cross-Validation (4,600 floorplans)** and the **Official Test Set (400 floorplans)** across all six primary architectures was executed on September 8, 2026 via [`run_all_evaluations.sh`](file:///workspaces/multi-unit-floorplan/run_all_evaluations.sh):
+* **GPU 0:** CAB1 EfficientNetB4 (Val & Test)
+* **GPU 1:** CAB2 EfficientNetB4 (Val & Test)
+* **GPU 2:** CubiCasa5k VGG16 → CAB1 EfficientNetV2S (Val & Test)
+* **GPU 3:** Zeng VGG16 → CAB2 EfficientNetV2S (Val & Test)
+
+All pipelines ran in parallel and completed in ~59 minutes total wall-clock time.
+
+### 1.2 Evaluation Performance Summary (Test Set)
 * **CAB1 EfficientNetB4:** Mean Test Accuracy = **94.52% ± 0.94%**, Non-Background Accuracy = **69.19%** (Best overall foreground segmentation accuracy).
-* **CAB2 EfficientNetB4:** Mean Test Accuracy = **94.14% ± 0.86%**, Non-Background Accuracy = **66.46%**.
+* **CAB2 EfficientNetB4:** Mean Test Accuracy = **94.14% ± 0.86%**, Non-Background Accuracy = **66.45%**.
 * **CubiCasa5k Reference (VGG16):** Mean Test Accuracy = **95.61% ± 0.28%**, Non-Background Accuracy = **61.65%**.
-* **Zeng Reference (VGG16):** Mean Test Accuracy = **95.19% ± 0.22%**, Non-Background Accuracy = **58.09%**.
+* **Zeng Reference (VGG16):** Mean Test Accuracy = **95.19% ± 0.22%**, Non-Background Accuracy = **58.08%**.
 
-> **Status:** All 10-fold test set evaluations have completed and results are recorded in the repository.
+### 1.3 Out-of-Fold Validation Summary (10 Folds, 4,600 Floorplans)
+* **CAB1 EfficientNetB4:** Mean Val Accuracy = **94.64% ± 0.88%**, Non-Background Accuracy = **69.55%**.
+* **CAB2 EfficientNetB4:** Mean Val Accuracy = **94.26% ± 0.80%**, Non-Background Accuracy = **66.68%**.
+* **CubiCasa5k Reference (VGG16):** Mean Val Accuracy = **96.42% ± 0.36%**, Non-Background Accuracy = **66.33%**.
+* **Zeng Reference (VGG16):** Mean Val Accuracy = **95.79% ± 0.32%**, Non-Background Accuracy = **60.86%**.
+
+> **Status:** All 10-fold validation and test set evaluations are complete and recorded in the repository.
 
 ---
 
@@ -59,113 +73,88 @@ python -c "import tensorflow as tf; print('GPUs detected:', tf.config.list_physi
 The test split is defined in [`data/cubicasa5k/test.txt`](file:///workspaces/multi-unit-floorplan/data/cubicasa5k/test.txt) and contains exactly 400 floorplan directories from the CubiCasa5k dataset.
 These samples are serialized in [`data/tfrecords/cubicasa5k/cubicasa5k_test.tfrecords`](file:///workspaces/multi-unit-floorplan/data/tfrecords/cubicasa5k/cubicasa5k_test.tfrecords) (verified 400 TFRecord entries).
 
-### 3.2 Status of Analyzed Models on the Test Dataset
+#### 3.2 Status of Analyzed Models on the Test and Validation Datasets
 
-| Model Family | Backbone | Folds / Scope | Evaluated on Test Set? | Result Artifact File |
-| :--- | :---: | :---: | :---: | :--- |
-| **CAB1 B4 (Best V1)** | `EfficientNetB4` | 10 Folds | **Yes (Completed 2026-09-07)** | [`results/test_kfold_cab1_EfficientNetB4_20260907-075825.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab1_EfficientNetB4_20260907-075825.txt) |
-| **CAB2 B4 (Best V1)** | `EfficientNetB4` | 10 Folds | **Yes (Completed 2026-09-07)** | [`results/test_kfold_cab2_EfficientNetB4_20260907-082006.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab2_EfficientNetB4_20260907-082006.txt) |
-| **CubiCasa5k Reference** | `VGG16` | 10 Folds | **Yes (Verified 2026-09-07)** | [`results/test_kfold_cubicasa5k_VGG16_20260907-082742.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cubicasa5k_VGG16_20260907-082742.txt) |
-| **Zeng Reference** | `VGG16` | 10 Folds | **Yes (Verified 2026-09-07)** | [`results/test_kfold_zeng_VGG16_20260907-083051.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_zeng_VGG16_20260907-083051.txt) |
-| **CAB1 V2S Final** | `EfficientNetV2S` | 10 Folds | **Yes (Official V2S)** | [`results/test_kfold_cab1_20260830-211306.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab1_20260830-211306.txt) |
-| **CAB2 V2S Final** | `EfficientNetV2S` | 10 Folds | **Yes (Official V2S)** | [`results/test_kfold_cab2_20260829-202421.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab2_20260829-202421.txt) |
-| **CAB1 Baseline** | `EfficientNetB2` | 10 Folds | **Yes (Historical)** | [`results/test_kfold_cab1_20260804-105154.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab1_20260804-105154.txt) |
-| **CAB2 Baseline** | `EfficientNetB2` | 10 Folds | **Yes (Historical)** | [`results/test_kfold_cab2_20260804-112730.txt`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab2_20260804-112730.txt) |
-| **Fold 0 Ablation Models** | `B0, B3, CAM, HHDC` | Single Fold | N/A (HPO only) | Run with `save_model=False` during hyperparameter search; only validation metrics logged. |
+| Model Family | Backbone | Folds / Scope | Evaluated on Val & Test? | Test Artifact File | Validation Artifact File |
+| :--- | :---: | :---: | :---: | :--- | :--- |
+| **CAB1 B4 (Best V1)** | `EfficientNetB4` | 10 Folds | **Yes (Audit Verified 2026-09-08)** | [`test_kfold_cab1_EfficientNetB4`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab1_EfficientNetB4_20260908-075715.txt) | [`val_kfold_cab1_EfficientNetB4`](file:///workspaces/multi-unit-floorplan/results/val_kfold_cab1_EfficientNetB4_20260908-073505.txt) |
+| **CAB2 B4 (Best V1)** | `EfficientNetB4` | 10 Folds | **Yes (Audit Verified 2026-09-08)** | [`test_kfold_cab2_EfficientNetB4`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab2_EfficientNetB4_20260908-075647.txt) | [`val_kfold_cab2_EfficientNetB4`](file:///workspaces/multi-unit-floorplan/results/val_kfold_cab2_EfficientNetB4_20260908-073515.txt) |
+| **CAB1 V2S Final** | `EfficientNetV2S` | 10 Folds | **Yes (Audit Verified 2026-09-08)** | [`test_kfold_cab1_EfficientNetV2S`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab1_EfficientNetV2S_20260908-080916.txt) | [`val_kfold_cab1_EfficientNetV2S`](file:///workspaces/multi-unit-floorplan/results/val_kfold_cab1_EfficientNetV2S_20260908-074843.txt) |
+| **CAB2 V2S Final** | `EfficientNetV2S` | 10 Folds | **Yes (Audit Verified 2026-09-08)** | [`test_kfold_cab2_EfficientNetV2S`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cab2_EfficientNetV2S_20260908-075927.txt) | [`val_kfold_cab2_EfficientNetV2S`](file:///workspaces/multi-unit-floorplan/results/val_kfold_cab2_EfficientNetV2S_20260908-073942.txt) |
+| **CubiCasa5k Reference** | `VGG16` | 10 Folds | **Yes (Audit Verified 2026-09-08)** | [`test_kfold_cubicasa5k_VGG16`](file:///workspaces/multi-unit-floorplan/results/test_kfold_cubicasa5k_VGG16_20260908-072527.txt) | [`val_kfold_cubicasa5k_VGG16`](file:///workspaces/multi-unit-floorplan/results/val_kfold_cubicasa5k_VGG16_20260908-071805.txt) |
+| **Zeng Reference** | `VGG16` | 10 Folds | **Yes (Audit Verified 2026-09-08)** | [`test_kfold_zeng_VGG16`](file:///workspaces/multi-unit-floorplan/results/test_kfold_zeng_VGG16_20260908-071630.txt) | [`val_kfold_zeng_VGG16`](file:///workspaces/multi-unit-floorplan/results/val_kfold_zeng_VGG16_20260908-071329.txt) |
+| **Fold 0 Ablation Models** | `B0, B3, CAM, HHDC` | Single Fold | N/A (HPO only) | Run with `save_model=False` during hyperparameter search. | N/A |
 
 ---
 
-## 4. How to Run the Evaluation Post-Rebuild
+## 4. How to Run the Evaluation
 
-An automated runner script [`run_test_evaluation.sh`](file:///workspaces/multi-unit-floorplan/run_test_evaluation.sh) and updated evaluation engine [`kfold_patch/evaluate_kfold.py`](file:///workspaces/multi-unit-floorplan/kfold_patch/evaluate_kfold.py) are prepared and verified.
+An automated runner script [`run_all_evaluations.sh`](file:///workspaces/multi-unit-floorplan/run_all_evaluations.sh) and updated evaluation engine [`kfold_patch/evaluate_kfold.py`](file:///workspaces/multi-unit-floorplan/kfold_patch/evaluate_kfold.py) are prepared and verified.
 
-### 4.1 Quick Launch via Automated Runner Script
-
-#### Option 1: Evaluate Both CAB1 B4 and CAB2 B4 Sequentially on a Single GPU (e.g. GPU 0)
+### 4.1 Full 4-GPU Parallel Evaluation (Recommended)
+Runs both validation (4,600 floorplans) and test (400 floorplans) across all 6 architectures in parallel:
 ```bash
-./run_test_evaluation.sh b4 0
+./run_all_evaluations.sh
 ```
-* Runtime: ~35–40 minutes on an A100 GPU.
-* Output logs: `logs/test_eval_b4_<timestamp>.log`
-* Output results:
-  * `results/test_kfold_cab1_EfficientNetB4_<timestamp>.txt`
-  * `results/test_kfold_cab2_EfficientNetB4_<timestamp>.txt`
+* **Runtime:** ~59 minutes total across 4 NVIDIA A100 GPUs.
+* **Outputs:** 12 result files in `results/` (`test_kfold_*.txt` and `val_kfold_*.txt`).
 
-#### Option 2: Run CAB1 and CAB2 in Parallel on Separate GPUs (Fastest: ~18–20 min total)
-Open two terminal tabs:
-
-* **Terminal 1 (CAB1 B4 on GPU 0):**
-  ```bash
-  ./run_test_evaluation.sh cab1_b4 0
-  ```
-* **Terminal 2 (CAB2 B4 on GPU 3):**
-  ```bash
-  ./run_test_evaluation.sh cab2_b4 3
-  ```
-
-#### Option 3: Evaluate All Models (B4 + CubiCasa5k + Zeng)
+### 4.2 Single-Target Evaluation via Runner Script
 ```bash
+# Evaluate both CAB1 and CAB2 with EfficientNetB4 on GPU 0 (Test set):
+./run_test_evaluation.sh b4 0
+
+# Evaluate all primary architectures sequentially on GPU 0:
 ./run_test_evaluation.sh all 0
 ```
 
----
-
-### 4.2 Direct Python CLI Invocation
-
-You can also run the evaluation script directly:
+### 4.3 Direct Python CLI Invocation
+`evaluate_kfold.py` supports evaluating the test split (`--split test`), out-of-fold validation split (`--split val`), or both (`--split both`):
 
 ```bash
-# Evaluate CAB1 and CAB2 with EfficientNetB4:
-CUDA_VISIBLE_DEVICES=0 python kfold_patch/evaluate_kfold.py \
-    --models cab1 cab2 \
-    --backbone EfficientNetB4 \
-    --k_fold 10
-
-# Evaluate only CAB1 EfficientNetB4:
+# Evaluate CAB1 B4 on both validation and test sets:
 CUDA_VISIBLE_DEVICES=0 python kfold_patch/evaluate_kfold.py \
     --models cab1 \
     --backbone EfficientNetB4 \
-    --k_fold 10
+    --k_fold 10 \
+    --split both
 
-# Evaluate only CAB2 EfficientNetB4:
-CUDA_VISIBLE_DEVICES=3 python kfold_patch/evaluate_kfold.py \
+# Evaluate CAB2 B4 on test set only:
+CUDA_VISIBLE_DEVICES=1 python kfold_patch/evaluate_kfold.py \
     --models cab2 \
     --backbone EfficientNetB4 \
-    --k_fold 10
+    --k_fold 10 \
+    --split test
 ```
 
 ---
 
 ## 5. Output Verification & Result Metrics
 
-Upon completion, each generated result file contains:
-1. Header metadata: Model prefix, exact Backbone name, dataset, fold count, per-fold test accuracy list, and mean test accuracy ± standard deviation.
-2. Full provenance list of the exact checkpoint directory evaluated for each fold (Folds 0 through 9).
-3. Class-by-class confusion matrix breakdown:
-   * Overall Accuracy
-   * Accuracy without background
-   * Per-class Class Accuracy, Recall, Precision, F1-Score, IoU, fwRecall, fwIoU, and raw TP/FP/TN/FN counts for:
-     * `bg` (Background)
-     * `walls`
-     * `railings`
-     * `doors`
-     * `windows`
-     * `stairs_all`
-   * Macro Mean & Macro Mean without background.
+### 5.1 Official Test Set Evaluation Results (CubiCasa5k 400 Test Images)
 
-### 5.1 Final Evaluation Results Summary (Evaluated on CubiCasa5k 400 Test Images)
+| Architecture | Backbone | Overall Test Acc | No-BG Acc | Walls IoU | Windows IoU | Doors IoU | Stairs IoU | Railings IoU | Macro IoU | Macro IoU (No-BG) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **CAB1 B4** | `EfficientNetB4` | 94.52% ± 0.94% | **69.19%** | 60.63% | 53.92% | 27.43% | 14.69% | 9.16% | 43.47% | 33.17% |
+| **CAB2 B4** | `EfficientNetB4` | 94.14% ± 0.86% | 66.45% | 59.18% | 47.80% | 19.35% | 9.87% | 7.47% | 39.72% | 28.73% |
+| **CAB1 V2S** | `EfficientNetV2S` | 93.79% ± 0.99% | 63.88% | 56.11% | 46.57% | 6.86% | 6.03% | 3.81% | 35.63% | 23.88% |
+| **CAB2 V2S** | `EfficientNetV2S` | 93.95% ± 1.69% | 63.05% | 57.04% | 42.91% | 26.24% | 15.82% | 10.65% | 41.17% | 30.53% |
+| **CubiCasa5k** | `VGG16` | **95.61% ± 0.28%** | 61.65% | **63.46%** | **59.82%** | 41.95% | 36.56% | **13.92%** | **51.89%** | **43.14%** |
+| **Zeng** | `VGG16` | 95.19% ± 0.22% | 58.08% | 59.33% | 56.47% | **43.34%** | **38.97%** | 8.97% | 50.37% | 41.42% |
 
-| Architecture | Backbone | Overall Test Acc | No-BG Acc | Walls IoU | Windows IoU | Doors IoU | Stairs IoU | Railings IoU | Macro IoU |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **CAB1 B4** | `EfficientNetB4` | 94.52% ± 0.94% | **69.19%** | 60.64% | 53.92% | 27.44% | 14.69% | 9.16% | 43.47% |
-| **CAB2 B4** | `EfficientNetB4` | 94.14% ± 0.86% | 66.46% | 59.19% | 47.80% | 19.35% | 9.88% | 7.47% | 39.72% |
-| **CAB1 V2S** | `EfficientNetV2S` | 93.79% ± 0.98% | 63.89% | 56.12% | 46.57% | 6.86% | 6.03% | 3.81% | 35.63% |
-| **CAB2 V2S** | `EfficientNetV2S` | 93.95% ± 1.69% | 63.06% | 57.05% | 42.91% | 26.25% | 15.82% | 10.65% | 41.17% |
-| **CubiCasa5k** | `VGG16` | **95.61% ± 0.28%** | 61.65% | **63.46%** | **59.83%** | 41.96% | 36.56% | **13.92%** | **51.89%** |
-| **Zeng** | `VGG16` | 95.19% ± 0.22% | 58.09% | 59.33% | 56.48% | **43.35%** | **38.97%** | 8.97% | 50.37% |
+### 5.2 Out-of-Fold Validation Results (10 Folds, 4,600 Floorplans)
 
-### 5.2 Documentation Integration Status
-All newly generated test metrics have been integrated across:
+| Architecture | Backbone | Overall Val Acc | No-BG Acc | Walls IoU | Windows IoU | Doors IoU | Stairs IoU | Railings IoU | Macro IoU | Macro IoU (No-BG) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **CAB1 B4** | `EfficientNetB4` | 94.64% ± 0.88% | **69.55%** | 59.75% | 53.06% | 27.37% | 14.53% | 9.93% | 43.29% | 32.93% |
+| **CAB2 B4** | `EfficientNetB4` | 94.26% ± 0.80% | 66.68% | 58.09% | 46.81% | 19.57% | 9.04% | 7.26% | 39.26% | 28.15% |
+| **CAB1 V2S** | `EfficientNetV2S` | 93.99% ± 0.89% | 64.72% | 55.82% | 45.29% | 6.99% | 6.36% | 4.24% | 35.55% | 23.74% |
+| **CAB2 V2S** | `EfficientNetV2S` | 94.10% ± 1.56% | 63.42% | 56.10% | 42.13% | 26.49% | 15.55% | 11.49% | 41.05% | 30.35% |
+| **CubiCasa5k** | `VGG16` | **96.42% ± 0.36%** | 66.33% | **67.52%** | **66.07%** | **47.58%** | **57.13%** | **18.97%** | **58.95%** | **51.46%** |
+| **Zeng** | `VGG16` | 95.79% ± 0.32% | 60.86% | 61.93% | 60.47% | 45.79% | 49.12% | 11.39% | 54.07% | 45.74% |
+
+### 5.3 Documentation Integration Status
+All newly generated validation and test metrics have been integrated across:
 * [`results/EXPERIMENT_REGISTRY.md`](file:///workspaces/multi-unit-floorplan/results/EXPERIMENT_REGISTRY.md)
 * [`results/experiment_analysis_and_kfold_evaluation.md`](file:///workspaces/multi-unit-floorplan/results/experiment_analysis_and_kfold_evaluation.md)
 * [`results/hyperparameter_recommendations.md`](file:///workspaces/multi-unit-floorplan/results/hyperparameter_recommendations.md)

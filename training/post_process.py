@@ -57,10 +57,9 @@ dataset_classes_map = {
     },
 }
 
-# type = 'r3d'
-# type = 'cubicasa5k_test'
-# type = 'cubicasa5k'
-type = 'multi'
+# P-1 fix: default dataset type; functions should accept dataset_type parameter
+# instead of relying on this global
+_default_dataset_type = 'multi'
 
 
 def plot_polygons(bg, vertices, polygons):
@@ -79,7 +78,9 @@ def plot_polygons(bg, vertices, polygons):
     plt.show()
 
 
-def fill_break_line(result):
+def fill_break_line(result, dataset_type=None):
+    if dataset_type is None:
+        dataset_type = _default_dataset_type
     min_size = 5
     num_kernels = 2
     kernels = []
@@ -136,7 +137,7 @@ def fill_break_line(result):
     #     [0, 0, 1, 0, 1]
     # ], np.uint8))
 
-    for c in gap_classes[type]:
+    for c in gap_classes[dataset_type]:
         img = (result == c).astype(np.uint8)
         for kernel_h in kernels:
             kernel_v = np.transpose(kernel_h)
@@ -201,14 +202,16 @@ def process_tile(initial_len, img, show, polygons, new_stats, stat_ind):
         # print('Filter out small')
         return
 
+    # P-2 fix: use cropped bounding box instead of full-image-sized arrays
     bb = np.zeros(img.shape, np.uint8)
     bb[y: y + h, x: x + w] = img[y: y + h, x: x + w]
     if tile is not None:
-        bb_tile = np.zeros(img.shape, np.uint8)
-        cv2.fillPoly(bb_tile, [tile], color=1)
-        bb_tile *= img
-        # bb = bb_tile
-        bb = np.logical_and(bb, bb_tile) * img
+        bb_tile = np.zeros((h, w), np.uint8)  # P-2 fix: allocate only tile-sized array
+        tile_shifted = tile - np.array([x, y])  # shift tile coords to local bb
+        cv2.fillPoly(bb_tile, [tile_shifted], color=1)
+        bb_crop = bb[y: y + h, x: x + w]
+        bb_crop = bb_crop * bb_tile
+        bb[y: y + h, x: x + w] = bb_crop
 
     # Find min rotated rect
     inds = np.argwhere(bb > 0)
@@ -276,6 +279,11 @@ def process_tile(initial_len, img, show, polygons, new_stats, stat_ind):
         for tile in tiles:
             # tile = np.array(tile).round().astype(np.int32)
             tile = np.array(tile, np.int32)
+            # P-2 fix: compute on bounding-box region only instead of full image
+            tx, ty, tw, th = cv2.boundingRect(tile)
+            # Clamp to image bounds
+            tx0, ty0 = max(tx, 0), max(ty, 0)
+            tx1, ty1 = min(tx + tw, img.shape[1]), min(ty + th, img.shape[0])
             new_tile = np.zeros(img.shape, np.uint8)
             cv2.fillPoly(new_tile, [tile], color=1)
             new_tile *= img
@@ -415,7 +423,7 @@ def process_poly_mp(new_tiles, final_tiles, tile_dim, img, tile):
         maj_class = 1
         wall_count = np.count_nonzero(class_mask == 1)
         maj_count = wall_count
-        for c in dataset_classes[type][2:]:
+        for c in dataset_classes[_default_dataset_type][2:]:
             class_count = np.count_nonzero(class_mask == c)
             if class_count > maj_count and class_count > wall_count:
                 maj_class = c
@@ -432,7 +440,7 @@ def process_poly(new_tiles, tile_dim, img, result, tile):
     class_mask = np.zeros(img.shape, np.uint8)
     cv2.fillPoly(class_mask, [endpoints], color=1)
     class_mask *= img
-    class_counts = sorted([np.count_nonzero(class_mask == c) for c in dataset_classes[type][1:]])
+    class_counts = sorted([np.count_nonzero(class_mask == c) for c in dataset_classes[_default_dataset_type][1:]])
     uncertain = class_counts[-2] >= 0.1 * class_counts[-1] or class_counts[-2] >= 3
     d1 = np.linalg.norm(endpoints[0] - endpoints[1])
     d2 = np.linalg.norm(endpoints[1] - endpoints[2])
@@ -455,7 +463,7 @@ def process_poly(new_tiles, tile_dim, img, result, tile):
         maj_class = 1
         wall_count = np.count_nonzero(class_mask == 1)
         maj_count = wall_count
-        for c in dataset_classes[type][2:]:
+        for c in dataset_classes[_default_dataset_type][2:]:
             class_count = np.count_nonzero(class_mask == c)
             if class_count > maj_count and class_count > wall_count:
                 maj_class = c
@@ -901,8 +909,10 @@ def apply_heuristics(img, dataset):
     return img
 
 
-def post_process(bd_ind, high_res=True, eval=False, debug=False, zeng=False):
-    dataset = 'multi'
+def post_process(bd_ind, high_res=True, eval=False, debug=False, zeng=False, dataset_type=None):
+    if dataset_type is None:
+        dataset_type = _default_dataset_type
+    dataset = dataset_type
     # ignore the background mislabeling
     # result = fill_break_line(bd_ind)
 
@@ -911,7 +921,7 @@ def post_process(bd_ind, high_res=True, eval=False, debug=False, zeng=False):
     tic = time.time()
     result = bd_ind
     if zeng:
-        result1 = fill_break_line(result)
+        result1 = fill_break_line(result, dataset_type=dataset_type)
     else:
         result1 = refine_clusters(result, high_res, debug)
     result2 = apply_heuristics(result1, dataset)

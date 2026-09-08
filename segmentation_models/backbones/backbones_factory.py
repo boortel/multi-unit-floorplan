@@ -6,6 +6,7 @@ from . import inception_resnet_v2 as irv2
 from . import inception_v3 as iv3
 
 from . import intern_image_backbone as ii
+from tensorflow.keras.applications import efficientnet_v2 as eff_v2
 
 
 class BackbonesFactory(ModelsFactory):
@@ -72,7 +73,22 @@ class BackbonesFactory(ModelsFactory):
         'efficientnetb7': ('block6a_expand_activation', 'block4a_expand_activation',
                            'block3a_expand_activation', 'block2a_expand_activation'),
 
-        'intern_image': ('level3_norm', 'level2_norm', 'level1_norm', 'level0_norm')
+        'intern_image': ('level3_norm', 'level2_norm', 'level1_norm', 'level0_norm'),
+
+        'efficientnetv2b0': ('block5e_expand_activation', 'block3b_expand_activation',
+                             'block2b_expand_activation', 'block1a_project_activation'),
+        'efficientnetv2b1': ('block5f_expand_activation', 'block3c_expand_activation',
+                             'block2c_expand_activation', 'block1b_project_activation'),
+        'efficientnetv2b2': ('block5f_expand_activation', 'block3c_expand_activation',
+                             'block2c_expand_activation', 'block1b_project_activation'),
+        'efficientnetv2b3': ('block5g_expand_activation', 'block3c_expand_activation',
+                             'block2c_expand_activation', 'block1b_project_activation'),
+        'efficientnetv2s': ('block5i_expand_activation', 'block3d_expand_activation',
+                            'block2d_expand_activation', 'block1b_project_activation'),
+        'efficientnetv2m': ('block5n_expand_activation', 'block3e_expand_activation',
+                            'block2e_expand_activation', 'block1c_project_activation'),
+        'efficientnetv2l': ('block5s_expand_activation', 'block3g_expand_activation',
+                            'block2g_expand_activation', 'block1d_project_activation'),
 
     }
 
@@ -88,6 +104,14 @@ class BackbonesFactory(ModelsFactory):
         'efficientnetb5': [eff.EfficientNetB5, eff.preprocess_input],
         'efficientnetb6': [eff.EfficientNetB6, eff.preprocess_input],
         'efficientnetb7': [eff.EfficientNetB7, eff.preprocess_input],
+
+        'efficientnetv2b0': [eff_v2.EfficientNetV2B0, eff_v2.preprocess_input],
+        'efficientnetv2b1': [eff_v2.EfficientNetV2B1, eff_v2.preprocess_input],
+        'efficientnetv2b2': [eff_v2.EfficientNetV2B2, eff_v2.preprocess_input],
+        'efficientnetv2b3': [eff_v2.EfficientNetV2B3, eff_v2.preprocess_input],
+        'efficientnetv2s': [eff_v2.EfficientNetV2S, eff_v2.preprocess_input],
+        'efficientnetv2m': [eff_v2.EfficientNetV2M, eff_v2.preprocess_input],
+        'efficientnetv2l': [eff_v2.EfficientNetV2L, eff_v2.preprocess_input],
 
         'intern_image': [ii.InternImage, ii.preprocess_input]
     }

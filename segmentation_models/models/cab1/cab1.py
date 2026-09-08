@@ -72,7 +72,7 @@ def AM(X, channel, activation, fused_layers, encoder_threshold, ratio=8, use_hhd
     elif use_cam == 5:
         spatial_feature = SAM5(channel_s, len(fused_layers))(fused_layers)
     else:
-        spatial_feature = SAM(channel_s, use_cam)(X_s)
+        spatial_feature = SAM(channel_s, use_hhdc)(X_s)  # A-1 fix: pass use_hhdc, not use_cam
     channel_feature = CAM(channel_c, ratio)(X_c)
     # X = concatenate([X, channel_feature, spatial_feature], axis=-1) # TODO maybe add X here
     X = concatenate([channel_feature, spatial_feature], axis=-1)
@@ -216,14 +216,17 @@ class HHDC(tf.keras.layers.Layer):
     def __init__(self, out_planes, concat=False, dilations=None):
         super(HHDC, self).__init__()
         self.concat = concat
+        # A-2 fix: actually use the dilations parameter instead of ignoring it
+        if dilations is None or not isinstance(dilations, (list, tuple)):
+            dilations = [1, 2, 3]
         if concat:
             out_planes -= 2
         self.conv1 = Conv2D(out_planes, 1, use_bias=False, padding='same')
         self.conv2 = Conv2D(out_planes, 1, use_bias=False, padding='same')
         self.conv3 = Conv2D(out_planes, 1, use_bias=False, padding='same')
-        self.convd1 = Conv2D(out_planes, 3, dilation_rate=1, use_bias=False, padding='same')
-        self.convd2 = Conv2D(out_planes, 3, dilation_rate=2, use_bias=False, padding='same')
-        self.convd3 = Conv2D(out_planes, 3, dilation_rate=3, use_bias=False, padding='same')
+        self.convd1 = Conv2D(out_planes, 3, dilation_rate=dilations[0], use_bias=False, padding='same')
+        self.convd2 = Conv2D(out_planes, 3, dilation_rate=dilations[1], use_bias=False, padding='same')
+        self.convd3 = Conv2D(out_planes, 3, dilation_rate=dilations[2], use_bias=False, padding='same')
 
     def call(self, x):
         out = self.conv1(x) + self.convd1(x) + self.conv2(x) + self.convd2(x) + self.conv3(x) + self.convd3(x)

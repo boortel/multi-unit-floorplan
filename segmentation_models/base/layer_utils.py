@@ -370,14 +370,16 @@ def Sep_CONV_stack(X, channel, kernel_size=3, stack_num=1, dilation_rate=1, acti
                             use_bias=bias_flag, name='{}_{}_depthwise'.format(name, i))(X)
 
         if batch_norm:
-            X = BatchNormalization(name='{}_{}_depthwise_BN'.format(name, i))(X)
+            # A-4 fix: use GroupNorm for consistency with decoder path (stable at small batch sizes)
+            X = tfa.layers.GroupNormalization(axis=3, groups=min(16, channel), name='{}_{}_depthwise_GN'.format(name, i))(X)
 
         X = activation_func(name='{}_{}_depthwise_activation'.format(name, i))(X)
 
         X = Conv2D(channel, (1, 1), padding='same', use_bias=bias_flag, name='{}_{}_pointwise'.format(name, i))(X)
 
         if batch_norm:
-            X = BatchNormalization(name='{}_{}_pointwise_BN'.format(name, i))(X)
+            # A-4 fix: use GroupNorm for consistency with decoder path (stable at small batch sizes)
+            X = tfa.layers.GroupNormalization(axis=3, groups=min(16, channel), name='{}_{}_pointwise_GN'.format(name, i))(X)
 
         X = activation_func(name='{}_{}_pointwise_activation'.format(name, i))(X)
 
@@ -421,7 +423,8 @@ def ASPP_conv(X, channel, activation='ReLU', batch_norm=True, name='aspp'):
     b4 = Conv2D(channel, 1, padding='same', use_bias=bias_flag, name='{}_conv_b4'.format(name))(b4)
 
     if batch_norm:
-        b4 = BatchNormalization(name='{}_conv_b4_BN'.format(name))(b4)
+        # A-4 fix: use GroupNorm for consistency with decoder path (stable at small batch sizes)
+        b4 = tfa.layers.GroupNormalization(axis=3, groups=min(16, channel), name='{}_conv_b4_GN'.format(name))(b4)
 
     b4 = activation_func(name='{}_conv_b4_activation'.format(name))(b4)
 
@@ -432,7 +435,8 @@ def ASPP_conv(X, channel, activation='ReLU', batch_norm=True, name='aspp'):
     b0 = Conv2D(channel, (1, 1), padding='same', use_bias=bias_flag, name='{}_conv_b0'.format(name))(X)
 
     if batch_norm:
-        b0 = BatchNormalization(name='{}_conv_b0_BN'.format(name))(b0)
+        # A-4 fix: use GroupNorm for consistency with decoder path (stable at small batch sizes)
+        b0 = tfa.layers.GroupNormalization(axis=3, groups=min(16, channel), name='{}_conv_b0_GN'.format(name))(b0)
 
     b0 = activation_func(name='{}_conv_b0_activation'.format(name))(b0)
 

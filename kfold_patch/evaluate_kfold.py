@@ -123,7 +123,7 @@ def extract_timestamp(dir_name):
 
 
 def extract_backbone_name(dir_name):
-    known = ['EfficientNetB4', 'EfficientNetV2S', 'EfficientNetB2', 'EfficientNetB3', 'EfficientNetB0', 'VGG16', 'vgg16']
+    known = ['EfficientNetB5', 'EfficientNetB4', 'EfficientNetV2B3', 'EfficientNetV2S', 'EfficientNetV2M', 'EfficientNetB2', 'EfficientNetB3', 'EfficientNetB0', 'VGG16', 'vgg16']
     base = os.path.basename(dir_name)
     for b in known:
         if b.lower() in base.lower():

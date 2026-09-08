@@ -199,6 +199,8 @@ def train(config, extra_callbacks=None):
     w_not_edge = None
     baseline = config.get('baseline', False)
     batch_norm = config.get('batch_norm', False)
+    freeze_backbone = config.get('freeze_backbone', True)
+    freeze_batch_norm = config.get('freeze_batch_norm', True)
 
     classes = ['bg'] + config.get('classes', [])
     heatmap_inds = config.get('heatmap_inds', [])
@@ -386,7 +388,9 @@ def train(config, extra_callbacks=None):
                                   weights=backbone_weights,
                                   aaf=(aaf_count > 0),
                                   use_hhdc=hhdc,
-                                  use_cam=cam)
+                                  use_cam=cam,
+                                  freeze_backbone=freeze_backbone,
+                                  freeze_batch_norm=freeze_batch_norm)
 
                 unet_model.automatic_loss = loss_function
                 unet_model.loss_sigmas = loss_function.sigmas
@@ -407,7 +411,9 @@ def train(config, extra_callbacks=None):
                                       weights=backbone_weights,
                                       aaf=(aaf_count > 0),
                                       use_hhdc=hhdc,
-                                      use_cam=cam)
+                                      use_cam=cam,
+                                      freeze_backbone=freeze_backbone,
+                                      freeze_batch_norm=freeze_batch_norm)
                     unet_model.compile(loss=loss_function,
                                        optimizer=optimizer,
                                        metrics=metrics,
@@ -421,7 +427,9 @@ def train(config, extra_callbacks=None):
                                       weights=backbone_weights,
                                       aaf=(aaf_count > 0),
                                       use_hhdc=hhdc,
-                                      use_cam=cam)
+                                      use_cam=cam,
+                                      freeze_backbone=freeze_backbone,
+                                      freeze_batch_norm=freeze_batch_norm)
 
                     unet_model.automatic_loss = loss_function
                     unet_model.loss_sigmas = loss_function.sigmas
@@ -458,7 +466,11 @@ def train(config, extra_callbacks=None):
         if lr_scheduler_type in ('cosine-decay-warmup', 'cosine-decay'):
             # Compute total steps from the actual training dataset size
             train_dataset_size = tf.data.experimental.cardinality(train_dataset).numpy()
-            if train_dataset_size < 0:
+            if train_dataset_size > 0:
+                # T-5 fix: cardinality() returns batches (dataset is already batched);
+                # convert to samples so units are consistent with the fallback path
+                train_dataset_size = train_dataset_size * batch_size
+            else:
                 k_fold_val = config.get('kFold', config.get('k_fold', 0))
                 if k_fold_val > 0:
                     train_dataset_size = 4140  # 9 training folds x 460 samples for CubiCasa5k

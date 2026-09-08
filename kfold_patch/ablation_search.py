@@ -125,6 +125,14 @@ VARIANTS = [
          backbone="EfficientNetB3"),
     dict(name="B4",           desc="EfficientNetB4",
          backbone="EfficientNetB4"),
+    dict(name="B5",           desc="EfficientNetB5",
+         backbone="EfficientNetB5"),
+    dict(name="V2B3",         desc="EfficientNetV2B3",
+         backbone="EfficientNetV2B3"),
+    dict(name="V2S",          desc="EfficientNetV2S",
+         backbone="EfficientNetV2S"),
+    dict(name="V2M",          desc="EfficientNetV2M",
+         backbone="EfficientNetV2M"),
 
     # ── Filter size ────────────────────────────────────────────────────────
     dict(name="large_filters", desc="Larger feature maps [64,128,256,512,1024]",
@@ -183,8 +191,11 @@ def build_config(base: dict, overrides: dict, fold: int, epochs: int,
 
 def run_ablation(model: str, selected: list[str], fold: int, epochs: int,
                  save_models: bool = False, batch_size: int = None,
-                 patience: int = 20, data_reduction: int = None):
-    base = BASE_CAB1 if model == "cab1" else BASE_CAB2
+                 patience: int = 20, data_reduction: int = None,
+                 backbone: str = None):
+    base = dict(BASE_CAB1 if model == "cab1" else BASE_CAB2)
+    if backbone:
+        base["backbone"] = backbone
     results = []
 
     print(f"\n{'='*60}")
@@ -286,6 +297,8 @@ if __name__ == "__main__":
                         help="Override batch size (default: 2)")
     parser.add_argument("--patience", type=int, default=20,
                         help="Early stopping patience in epochs (default: 20)")
+    parser.add_argument("--backbone", type=str, default=None,
+                        help="Override base backbone (default: EfficientNetB2, e.g. EfficientNetV2S)")
     parser.add_argument("--data_reduction", type=int, default=None,
                         help="Image downscale factor for fast exploratory runs, e.g. 2 (default: None)")
     args = parser.parse_args()
@@ -298,4 +311,5 @@ if __name__ == "__main__":
 
     run_ablation(args.model, args.variants, args.fold, args.epochs,
                  save_models=args.save_models, batch_size=args.batch_size,
-                 patience=args.patience, data_reduction=args.data_reduction)
+                 patience=args.patience, data_reduction=args.data_reduction,
+                 backbone=args.backbone)
