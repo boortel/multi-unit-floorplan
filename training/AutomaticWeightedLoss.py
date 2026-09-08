@@ -12,7 +12,7 @@ class AutomaticWeightedLoss:
         self.inds = inds
         self.dec = dec
         self.sigmas = []
-        self.epoch = 0
+        self.epoch = tf.Variable(0.0, trainable=False, dtype=tf.float32, name='epoch')
         self.epochs = epochs
         self.losses = [tf.Variable(name=name, dtype=tf.float32,
                                    initial_value=0.0, trainable=False) for name in self.names]
@@ -48,7 +48,7 @@ class AutomaticWeightedLossCallback(Callback):
         self.aaf = aaf
 
     def on_epoch_end(self, epoch, logs=None):
-        self.model.automatic_loss.epoch = epoch
+        self.model.automatic_loss.epoch.assign(float(epoch))
 
         sigmas = []
         with tf.name_scope("Sigmas"):

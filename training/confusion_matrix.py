@@ -35,10 +35,10 @@ class CM(Metric):
         if isinstance(y_pred, tuple):
             y_pred = y_pred[1]
 
-        y_true = tf.math.argmax(y_true[0], axis=-1)
+        y_true = tf.math.argmax(y_true, axis=-1)
 
         if not self.post_processing:
-            y_pred = tf.math.argmax(y_pred[0], axis=-1)
+            y_pred = tf.math.argmax(y_pred, axis=-1)
 
         # if self.post_processing:
             # if self.conversion is not None:

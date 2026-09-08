@@ -10,19 +10,23 @@ def cm_metrics(confusion_matrix):
     # Class accuracy
     acc = (TP + TN) / (TP + FP + FN + TN)
 
+    # Epsilon guard to prevent division by zero (E-5 fix)
+    eps = 1e-7
+
     # Sensitivity, hit rate, recall, or true positive rate
-    recall = TP / (TP + FN)
+    recall = TP / (TP + FN + eps)
 
     # Precision or positive predictive value
-    precision = TP / (TP + FP)
+    precision = TP / (TP + FP + eps)
 
-    f1 = 2 * precision * recall / (precision + recall)
+    f1 = 2 * precision * recall / (precision + recall + eps)
 
     # IoU
-    iou = TP / (TP + FN + FP)
+    iou = TP / (TP + FN + FP + eps)
 
-    # fw
-    fw = TP / (np.diag(confusion_matrix).sum() - confusion_matrix[0, 0])
+    # fw - use ground truth totals (TP + FN) instead of just TP (E-6 fix)
+    true_totals = TP + FN
+    fw = true_totals / (true_totals.sum() - true_totals[0] + eps)
 
     fwIou = fw * iou
 

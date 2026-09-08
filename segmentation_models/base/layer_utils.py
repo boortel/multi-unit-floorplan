@@ -254,6 +254,8 @@ def CONV_stack(X, channel, kernel_size=3, stack_num=2,
 
     # stacking Convolutional layers
     for i in range(stack_num):
+        # Reset T each iteration to avoid stale references (A-6 fix)
+        T = None
 
         if square_conv:
             # square_conv
@@ -268,7 +270,7 @@ def CONV_stack(X, channel, kernel_size=3, stack_num=2,
             # vertical_conv
             B = Conv2D(channel, (kernel_size, 1), padding='same', use_bias=bias_flag,
                        dilation_rate=dilation_rate, name='v_{}_{}'.format(name, i))(X)
-            if "T" in locals():
+            if T is not None:
                 T += C + B
             else:
                 T = C + B
@@ -280,7 +282,7 @@ def CONV_stack(X, channel, kernel_size=3, stack_num=2,
             D2 = Conv2D(channel, kernel_size, padding='same', use_bias=bias_flag,
                         dilation_rate=dilation_rate, name='d2_{}_{}'.format(name, i),
                         kernel_constraint=DiagonalWeight((kernel_size, kernel_size, 1, 1), True))(X)
-            if "T" in locals():
+            if T is not None:
                 T += D1 + D2
             else:
                 T = D1 + D2

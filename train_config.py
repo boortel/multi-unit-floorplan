@@ -123,11 +123,13 @@ def main():
 
         tic = time.time()
         k_fold = cfg.get('kFold', cfg.get('k_fold', 0))
+        target_fold = cfg.get('target_fold', None)
         cfg.hist = []
         if k_fold > 0:
             import numpy as np
             histories = []
-            for f in range(k_fold):
+            folds_to_run = [target_fold] if (target_fold is not None and isinstance(target_fold, int) and target_fold >= 0) else list(range(k_fold))
+            for f in folds_to_run:
                 tic_fold = time.time()
                 print(f"Starting fold {f}/{k_fold}")
                 cfg.fold = f
@@ -308,7 +310,7 @@ def train(config, extra_callbacks=None):
                             names.append('AAF({0}x{0})'.format(2 * s + 1))
                             inds.append(aaf_ind)
                             dec.append(True)
-            loss_function = AutomaticWeightedLoss(loss_funcs, names, inds, dec, epochs, config.log_dir)
+            loss_function = AutomaticWeightedLoss(loss_funcs, names, inds, dec, epochs, config.log_dir_fold)
 
         if resume_from:
             print('Resuming training')
@@ -457,8 +459,11 @@ def train(config, extra_callbacks=None):
             # Compute total steps from the actual training dataset size
             train_dataset_size = tf.data.experimental.cardinality(train_dataset).numpy()
             if train_dataset_size < 0:
-                # Dataset size unknown (generator-based); fall back to train_buffer_size
-                train_dataset_size = train_buffer_size
+                k_fold_val = config.get('kFold', config.get('k_fold', 0))
+                if k_fold_val > 0:
+                    train_dataset_size = 4140  # 9 training folds x 460 samples for CubiCasa5k
+                else:
+                    train_dataset_size = train_buffer_size
             scheduler_enum = (SchedulerType.COSINE_DECAY_WITH_WARMUP
                               if lr_scheduler_type == 'cosine-decay-warmup'
                               else SchedulerType.COSINE_DECAY)

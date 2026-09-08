@@ -217,9 +217,11 @@ def load_images(path, type='', data_dir='annotations/hdd/', show=False):
     # image = cv2.resize(image, (512, 512))  # TODO check augment for proper interpolation
     # image = cv2.resize(image, (608, 608))  # TODO check augment for proper interpolation
     # image = cv2.resize(image, (2048, 2048))  # TODO check augment for proper interpolation
-    h = min(image.shape[0], 812)
-    w = min(image.shape[1], 812)
-    image = cv2.resize(image, (w , h), interpolation=cv2.INTER_NEAREST)
+    # Scale uniformly preserving aspect ratio (D-2 fix)
+    scale = min(812 / image.shape[0], 812 / image.shape[1], 1.0)
+    h = int(image.shape[0] * scale)
+    w = int(image.shape[1] * scale)
+    image = cv2.resize(image, (w, h), interpolation=cv2.INTER_NEAREST)
     mask = cv2.resize(mask, (w, h), interpolation=cv2.INTER_NEAREST)
 
     if type == 'combi' and len(images[2:]) < 3:
@@ -281,7 +283,7 @@ def shape_adjustment_transform(img, mask, height, width, n_upsample_blocks=5, re
         width = tf.math.floordiv(width, reduction_ratio)
         if width > 0 and height > 0:
             img = tf.image.resize(img, [height, width])
-            mask = tf.image.resize(mask, [height, width])
+            mask = tf.image.resize(mask, [height, width], method='nearest')
         else:
             print("Warning reduction: wrong size:", height, width)
     if n_upsample_blocks is not None:
@@ -292,7 +294,7 @@ def shape_adjustment_transform(img, mask, height, width, n_upsample_blocks=5, re
             height = height - h_r
             if width > 0 and height > 0:
                 img = tf.image.resize(img, [height, width])
-                mask = tf.image.resize(mask, [height, width])
+                mask = tf.image.resize(mask, [height, width], method='nearest')
             else:
                 print("Warning adjustment: wrong size:", height, width)
     w_i, h_i = img.shape[:2]

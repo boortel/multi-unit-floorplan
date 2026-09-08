@@ -13,6 +13,7 @@ Contents:
 * [Training](#training)
 * [Testing](#testing)
 * [Evaluation](#evaluation)
+* [Experiments & Evaluation Results](#experiments--evaluation-results)
 
 <details>
 <summary>Supported models and datasets</summary>
@@ -93,6 +94,17 @@ Or
 ```bash
 python evaluate_config.py <config>
 ```
+
+## Experiments & Evaluation Results
+Comprehensive benchmarks, 10-fold cross-validation evaluations, and ablation studies on the **CubiCasa5k** dataset are documented in:
+* **[Experiment Registry Manifest](results/EXPERIMENT_REGISTRY.md):** Complete registry of all training runs, cross-validation logs, and test evaluations.
+* **[Experiment Analysis & 10-Fold Cross-Validation Evaluation](results/experiment_analysis_and_kfold_evaluation.md):** In-depth post-mortem analysis comparing CAB1 & CAB2 (EfficientNetB4, EfficientNetV2S) against CubiCasa5k and Zeng baselines on the 400 test images.
+* **[Hyperparameter Search & Recommendations](results/hyperparameter_recommendations.md):** Architecture ablation study (backbones B0–B4, HHDC, CAM, AAF) and verified hyperparameters.
+* **[Test Set Evaluation Guide & Runbook](results/TEST_EVALUATION_GUIDE.md):** Execution runbook and instructions for running 10-fold test evaluations on GPU.
+* **[Training Accelerations & Optimizations](TRAINING_OPTIMIZATIONS.md):** Mixed precision (`mixed_float16`), XLA JIT, and vectorized loss optimizations providing a ~5×–7× training speedup.
+
+> **Key Finding:** While CubiCasa5k achieves high overall accuracy via conservative background prediction, **CAB1 (EfficientNetB4) achieves +7.54% higher foreground pixel accuracy (69.19% vs 61.65%) and +13.24% higher wall recall (79.78% vs 66.54%)**, reducing missed wall segments by 40% and enforcing closed room boundaries via Adaptive Affinity Fields (AAF). See [Section 7 of the Evaluation Report](results/experiment_analysis_and_kfold_evaluation.md#7-architectural--empirical-superiorities-of-cab1--cab2-over-cubicasa5k).
+
 ## TODO:
 - [x] Add Config environment - Done from [mmcv](https://github.com/open-mmlab/mmcv/tree/v1.7.1)
 - [ ] Add [InternImage](https://github.com/OpenGVLab/InternImage/tree/master) backbone

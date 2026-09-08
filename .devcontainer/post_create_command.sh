@@ -22,5 +22,15 @@ curl -fsSL https://antigravity.google/cli/install.sh | bash
 
 # Setup LD_LIBRARY_PATH for TensorFlow GPU support
 mkdir -p /opt/miniconda3/envs/main/etc/conda/activate.d
-echo 'CUDNN_PATH=$(dirname $(python3 -c "import nvidia.cudnn;print(nvidia.cudnn.__file__)"))' > /opt/miniconda3/envs/main/etc/conda/activate.d/env_vars.sh
-echo 'export LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:/opt/miniconda3/envs/main/lib:$CUDNN_PATH/lib:$LD_LIBRARY_PATH' >> /opt/miniconda3/envs/main/etc/conda/activate.d/env_vars.sh
+cat << 'EOF' > /opt/miniconda3/envs/main/etc/conda/activate.d/env_vars.sh
+NV_LIBS=$(python -c "import site, glob; print(':'.join(glob.glob(site.getsitepackages()[0] + '/nvidia/*/lib')))" 2>/dev/null || true)
+export LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:/opt/miniconda3/envs/main/lib:${NV_LIBS}:${LD_LIBRARY_PATH:-}
+EOF
+
+# Also register libraries with ldconfig so they are available system-wide
+python -c "
+import site, glob
+paths = glob.glob(site.getsitepackages()[0] + '/nvidia/*/lib')
+with open('/etc/ld.so.conf.d/nvidia-tf.conf', 'w') as f:
+    f.write('\n'.join(paths) + '\n')
+" && ldconfig 2>/dev/null || true

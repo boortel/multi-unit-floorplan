@@ -33,10 +33,11 @@ class BaseModel(Model):
         if hasattr(optimizer, 'get_unscaled_gradients'):
             gradients = optimizer.get_unscaled_gradients(gradients)
 
-        aaf_len = len([v for v in trainable_variables if 'edge' in v.name])
-        if aaf_len > 0:
-            gradients = list(gradients)
-            gradients[-aaf_len:] = [-grad if grad is not None else None for grad in gradients[-aaf_len:]]
+        # Negate gradients for AAF edge variables by name, not position (T-2 fix)
+        gradients = list(gradients)
+        for i, v in enumerate(trainable_variables):
+            if 'edge' in v.name and gradients[i] is not None:
+                gradients[i] = -gradients[i]
 
         self.optimizer.apply_gradients(zip(gradients, trainable_variables))
         # self.optimizer.apply_gradients(zip(gradients, trainable_variables))
@@ -66,7 +67,6 @@ class BaseModel(Model):
 
         if self.tta:
             image = x.numpy()[0]
-            depth = image.shape[-1]
             image_batch = np.array([
                 image,
                 np.fliplr(image),
@@ -75,25 +75,19 @@ class BaseModel(Model):
                 np.rot90(image, k=3),
             ])
             prediction = self(image_batch, training=False).numpy()
+            # Average softmax probabilities, not discrete indices (E-1 fix)
             results = [
-                prediction[0].argmax(axis=-1),
-                np.fliplr(prediction[1].argmax(axis=-1)),
-                np.flipud(prediction[2].argmax(axis=-1)),
-                np.rot90(prediction[3].argmax(axis=-1), k=-1),
-                np.rot90(prediction[4].argmax(axis=-1), k=-3),
+                prediction[0],
+                np.fliplr(prediction[1]),
+                np.flipud(prediction[2]),
+                np.rot90(prediction[3], k=-1, axes=(0, 1)),
+                np.rot90(prediction[4], k=-3, axes=(0, 1)),
             ]
-            result = np.apply_along_axis(lambda x: np.bincount(x).argmax(), axis=0, arr=np.array(results)).astype(
-                np.uint8)
-
-            # preds = tf.concat([
-            #     tf.math.argmax(self(x, training=False), axis=-1),
-            #     tf.math.argmax(tf.image.flip_left_right(self(tf.image.flip_left_right(x), training=False)), axis=-1),
-            #     tf.math.argmax(tf.image.flip_up_down(self(tf.image.flip_up_down(x), training=False)), axis=-1),
-            #     # tf.math.argmax(tf.image.rot90(self(tf.image.rot90(x, k=1), training=False), k=3), axis=-1),
-            #     # tf.math.argmax(tf.image.rot90(self(tf.image.rot90(x, k=3), training=False), k=1), axis=-1),
-            # ], axis=0)
+            avg_prob = np.mean(results, axis=0)
+            result = avg_prob.argmax(axis=-1).astype(np.uint8)
+            # Use num_classes from model output, not image channels (E-2 fix)
+            depth = prediction.shape[-1]
             y_pred = tf.one_hot(np.expand_dims(result, axis=0), depth=depth)
-            # TODO check ypred shape
         else:
             y_pred = self(x, training=False)
 

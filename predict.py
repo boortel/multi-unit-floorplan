@@ -138,11 +138,12 @@ def predict(files, tta=False, overlay=False):
             prediction = unet_model.predict_on_batch(image_batch)
             if isinstance(prediction, tuple):
                 prediction = prediction[1]
-            result = prediction[0].argmax(axis=-1)
-            results.append(np.rot90(result, k=-k))
+            # Average softmax probabilities, not discrete indices (E-1 fix)
+            prob = np.rot90(prediction[0], k=-k, axes=(0, 1))
+            results.append(prob)
             image = tf.image.rot90(image, k=1)
 
-        result = np.mean(results, axis=0)
+        result = np.mean(results, axis=0).argmax(axis=-1)
         # Unpad result
         result = unpad(result, pads)
         result_pp = post_process(result)
@@ -393,17 +394,15 @@ def main():
                 if isinstance(prediction, tuple):
                     prediction = prediction[0]
                 if tta:
+                    # Average softmax probabilities, not discrete indices (E-1 fix)
                     results = [
-                        prediction[0].argmax(axis=-1),
-                        np.fliplr(prediction[1].argmax(axis=-1)),
-                        np.flipud(prediction[2].argmax(axis=-1)),
-                        np.rot90(prediction[3].argmax(axis=-1), k=-1),
-                        np.rot90(prediction[4].argmax(axis=-1), k=-3),
+                        prediction[0],
+                        np.fliplr(prediction[1]),
+                        np.flipud(prediction[2]),
+                        np.rot90(prediction[3], k=-1, axes=(0, 1)),
+                        np.rot90(prediction[4], k=-3, axes=(0, 1)),
                     ]
-                    result = np.apply_along_axis(lambda x: np.bincount(x).argmax(), axis=0,
-                                                 arr=np.array(results)).astype(
-                        np.uint8)
-                    # result = np.mean(results, axis=0)
+                    result = np.mean(results, axis=0).argmax(axis=-1).astype(np.uint8)
                 else:
                     result = prediction[0].argmax(axis=-1).astype(np.uint8)
 

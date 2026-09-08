@@ -281,12 +281,8 @@ def main():
         tta = 'tta' in config and config['tta']
         post_processing = 'post_processing' in config and config['post_processing']
         if tta:
-            print('Fix this!')
-            exit(0)
-            # unet_model_tta = sm.Xnet(backbone_name=config['backbone'], classes=len(classes), activation='softmax',
-            #                          tta=True)
-            # unet_model_tta.set_weights(unet_model.get_weights())
-            # unet_model = unet_model_tta
+            # TTA: enable TTA on loaded model so test_step uses TTA (E-3 fix)
+            unet_model.tta = True
 
         unet_model.compile(run_eagerly=True, metrics=[CM(num_classes=len(classes), post_processing=post_processing, conversion=conversion)])
 
