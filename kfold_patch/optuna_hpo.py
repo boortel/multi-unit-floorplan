@@ -109,21 +109,23 @@ _COMMON_DICT = dict(
 )
 
 
-def suggest_params(trial: optuna.Trial, model: str, fixed_backbone: str = None) -> dict:
+def suggest_params(trial: optuna.Trial, model: str, fixed_backbone: str = None, batch_size: int = 4) -> dict:
     """Define the hyperparameter search space and sample from it."""
 
-    if fixed_backbone:
+    if fixed_backbone and fixed_backbone.lower() != "all":
         backbone = fixed_backbone
     else:
         backbone = trial.suggest_categorical(
             "backbone", ["EfficientNetB0", "EfficientNetB2", "EfficientNetB3", "EfficientNetB4", "EfficientNetB5", "EfficientNetV2B3", "EfficientNetV2S", "EfficientNetV2M"])
 
+    # Keep choices matching SQLite schema; immediately prune 'large' to accelerate search
     filter_preset = trial.suggest_categorical(
         "filter_preset", ["small", "base", "large"])
+    if filter_preset == "large":
+        raise optuna.TrialPruned("Filter preset 'large' pruned to accelerate HPO")
     filters = {
         "small": [16, 32, 64, 128, 256],
         "base":  [32, 64, 128, 256, 512],
-        "large": [64, 128, 256, 512, 1024],
     }[filter_preset]
 
     hhdc = trial.suggest_categorical("hhdc", [False, 3, 5, 7])
@@ -150,7 +152,7 @@ def suggest_params(trial: optuna.Trial, model: str, fixed_backbone: str = None) 
         aaf=aaf,
         hhdc=hhdc,
         cam=cam,
-        batch_size=2,
+        batch_size=batch_size,
         lr_scheduler=lr_scheduler,
         lr_min=lr_min,
         warmup_epochs=warmup_epochs,
@@ -158,20 +160,20 @@ def suggest_params(trial: optuna.Trial, model: str, fixed_backbone: str = None) 
 
 
 # ── Objective ────────────────────────────────────────────────────────────────
-def make_objective(model: str, epochs: int, work_dir: str, fixed_backbone: str = None):
+def make_objective(model: str, epochs: int, work_dir: str, fixed_backbone: str = None, batch_size: int = 4):
     def objective(trial: optuna.Trial) -> float:
-        params = suggest_params(trial, model, fixed_backbone=fixed_backbone)
-
-        # Build config
-        cfg_dict = dict(**_COMMON_DICT, **params)
-        cfg_dict["exp_name"] = f"{model}_hpo_trial{trial.number}"
-        cfg_dict["epochs"]   = epochs
-        cfg_dict["work_dir"] = os.path.abspath(work_dir)
-        cfg = Config(cfg_dict=cfg_dict)
-
-        prune_cb = OptunaPruneCallback(trial, monitor="val_loss")
-
         try:
+            params = suggest_params(trial, model, fixed_backbone=fixed_backbone, batch_size=batch_size)
+
+            # Build config
+            cfg_dict = dict(**_COMMON_DICT, **params)
+            cfg_dict["exp_name"] = f"{model}_hpo_trial{trial.number}"
+            cfg_dict["epochs"]   = epochs
+            cfg_dict["work_dir"] = os.path.abspath(work_dir)
+            cfg = Config(cfg_dict=cfg_dict)
+
+            prune_cb = OptunaPruneCallback(trial, monitor="val_loss")
+
             import tensorflow as tf
             tf.keras.backend.clear_session()
             gc.collect()
@@ -182,7 +184,9 @@ def make_objective(model: str, epochs: int, work_dir: str, fixed_backbone: str =
         except optuna.TrialPruned:
             raise
         except Exception as e:
-            print(f"Trial {trial.number} failed: {e}")
+            import traceback
+            print(f"\n[ERROR] Trial {trial.number} failed with exception: {e}")
+            traceback.print_exc()
             return float("inf")
         finally:
             import tensorflow as tf
@@ -202,8 +206,10 @@ def main():
                         help="Max epochs per trial (default: 100)")
     parser.add_argument("--fold",    type=int, default=0,
                         help="K-fold split to use (default: 0)")
-    parser.add_argument("--backbone", default=None,
-                        help="Fix backbone (e.g. EfficientNetV2S) instead of searching over backbones")
+    parser.add_argument("--backbone", default="EfficientNetV2M",
+                        help="Fix backbone (default: EfficientNetV2M; pass 'all' to search across backbones)")
+    parser.add_argument("--batch-size", type=int, default=4,
+                        help="Batch size per step (default: 4)")
     parser.add_argument("--db",      default=None,
                         help="SQLite DB path (default: optuna_<model>.db)")
     parser.add_argument("--study",   default=None,
@@ -216,10 +222,9 @@ def main():
 
     _COMMON_DICT["fold"] = args.fold
 
-    # MedianPruner: prune if trial is worse than median of completed trials
-    # Start pruning after 5 completed trials, check from epoch 15 onwards
+    # Suggestion 4: Start pruning earlier (epoch 8 vs 15) and check every 2 epochs (interval 2 vs 5)
     pruner = optuna.pruners.MedianPruner(
-        n_startup_trials=5, n_warmup_steps=15, interval_steps=5)
+        n_startup_trials=5, n_warmup_steps=8, interval_steps=2)
 
     sampler = optuna.samplers.TPESampler(seed=42)
 
@@ -238,7 +243,7 @@ def main():
 
     print(f"\nStudy: {study_name}")
     print(f"DB:    {db_path}")
-    print(f"Model: {args.model}  |  fold={args.fold}  |  epochs={args.epochs}")
+    print(f"Model: {args.model}  |  fold={args.fold}  |  epochs={args.epochs}  |  batch_size={args.batch_size}")
     if args.backbone:
         print(f"Fixed Backbone: {args.backbone}")
     print(f"Completed trials: {n_completed}  |  Remaining: {n_remaining}")
@@ -249,7 +254,7 @@ def main():
     if n_remaining == 0:
         print("All requested trials already completed.")
     else:
-        objective = make_objective(args.model, args.epochs, work_dir=".", fixed_backbone=args.backbone)
+        objective = make_objective(args.model, args.epochs, work_dir=".", fixed_backbone=args.backbone, batch_size=args.batch_size)
         study.optimize(objective, n_trials=n_remaining,
                        catch=(Exception,))
 
