@@ -2,13 +2,29 @@
 
 **Project:** Multi-Unit Floorplan Segmentation · CubiCasa5k  
 **Models:** CAB1 & CAB2 · EfficientNetB4 / EfficientNetV2S / EfficientNetV2M  
-**Date:** September 24, 2026
+**Date:** September 24, 2026 · **Updated:** October 14, 2026
 
 ---
 
 ## Recommended Configurations
 
-### Production Setup (10-Fold Verified)
+### Best 10-Fold Result: HPO Champions on EfficientNetV2M (Oct 14, 2026)
+
+The two V2M HPO configs below have been promoted to full 10-fold CV and now hold the best measured results (CAB1 V2M: 96.37% test acc / 80.16% no-BG; CAB2 V2M: 96.14% / 61.99% macro IoU). See [EXPERIMENT_REGISTRY.md](EXPERIMENT_REGISTRY.md) for numbers and caveats: they were trained after the audit fixes, while the B4 baseline below was trained before them.
+
+| Parameter | CAB1 (Trial 21) | CAB2 (Trial 32) |
+|:----------|:-----------------|:-----------------|
+| **Config** | `kfold_patch/eval_cab1_hpo_v2m.py` | `kfold_patch/eval_cab2_hpo_v2m.py` |
+| **Backbone** | EfficientNetV2M | EfficientNetV2M |
+| **HHDC** | False | 3 |
+| **CAM** | 5 | 1 |
+| **AAF** | [4, 8] | [2, 4, 8] |
+| **Decoder Filters** | [16, 32, 64, 128, 256] (small) | [16, 32, 64, 128, 256] (small) |
+| **Scheduler** | reduce-lr-on-plateau (2 warmup) | reduce-lr-on-plateau (10 warmup) |
+| **Min LR** | 1.83e-7 | 9.64e-6 |
+| **Single-Fold Val Loss** | -11.65 | -16.67 |
+
+### Previous Production Setup (B4, 10-Fold Verified Sept 8, pre-audit training)
 
 | Parameter | CAB1 | CAB2 |
 |:----------|:-----|:-----|
@@ -23,18 +39,17 @@
 | **Epochs** | 100 (early stopping ~32–76) | 100 (early stopping ~31–76) |
 | **Batch Size** | 4 | 4 |
 
-### HPO-Optimized Setup (Ready for 10-Fold Promotion)
+### CAB1 B4 HPO Champion (Trial 52) — 10-Fold Evaluated Oct 14
 
-| Parameter | CAB1 (Trial 52) | CAB2 (Trial 32) |
-|:----------|:-----------------|:-----------------|
-| **Backbone** | EfficientNetB4 | EfficientNetV2M |
-| **HHDC** | False | 3 |
-| **CAM** | 3 | 1 |
-| **AAF** | [2, 4, 8] | [2, 4, 8] |
-| **Decoder Filters** | [16, 32, 64, 128, 256] (small) | [16, 32, 64, 128, 256] (small) |
-| **Scheduler** | cosine-decay-warmup (4 warmup) | reduce-lr-on-plateau (10 warmup) |
-| **Min LR** | 7.08e-7 | 9.64e-6 |
-| **Single-Fold Val Loss** | **-11.9251** | **-16.6725** |
+Best single-fold CAB1 trial overall (val loss **-11.9251**). 10-fold Oct 1–4 (`kfold_patch/eval_cab1_hpo_b4.py`). **Test: 95.86% ±1.18 acc, 74.96% no-BG, 58.98% macro IoU.** That is second only to the V2M configs. Fold 4 lags (92.30%) and the other 9 folds score ~96.25%. A lower single-fold val loss (-11.93 vs -11.65 for V2M t21) did **not** translate into better 10-fold test metrics than V2M.
+
+| Parameter | CAB1 (Trial 52) |
+|:----------|:-----------------|
+| **Backbone** | EfficientNetB4 |
+| **HHDC / CAM** | False / 3 |
+| **AAF** | [2, 4, 8] |
+| **Decoder Filters** | [16, 32, 64, 128, 256] (small) |
+| **Scheduler** | cosine-decay-warmup (4 warmup), min LR 7.08e-7 |
 
 ---
 
@@ -65,6 +80,8 @@
 ---
 
 ## 2. EfficientNetV1 vs V2 — 10-Fold Test Comparison
+
+*B4 vs V2S with the fixed ablation configs (Sept 8). For the V2M HPO results see [EXPERIMENT_REGISTRY.md](EXPERIMENT_REGISTRY.md).*
 
 | Metric | CAB1: B4 | CAB1: V2S | Δ | CAB2: B4 | CAB2: V2S | Δ |
 |:-------|:--------:|:---------:|:-:|:--------:|:---------:|:-:|
@@ -100,7 +117,7 @@
 | 5 | 13 | EfficientNetV2M | -11.21 | small | 5 | 5 | [4,8] | cosine-warmup |
 | 6 | 10 | EfficientNetB3 | -10.14 | small | False | 3 | [4,8] | cosine-warmup |
 
-*53 total trials (12 completed, 32 pruned, 9 failed). Source: `optuna_cab1.db`*
+*53 total trials (12 completed, 32 pruned, 9 failed). Source: `optuna_cab1.db`, summary `hpo/hpo_cab1_20260921-133827.txt`*
 
 ### CAB2 — Multi-Backbone Study (Top 3)
 
@@ -112,18 +129,18 @@
 
 *10 total trials (6 completed). Source: `optuna_cab2.db`*
 
-### CAB2 — Dedicated V2M Study (Top 5 of 20 completed)
+### CAB2 — Dedicated V2M Study (Top 5 of 23 completed)
 
 | Rank | Trial | Val Loss | Filters | HHDC | CAM | AAF | Scheduler |
 |:----:|:-----:|:--------:|:--------|:----:|:---:|:---:|:----------|
-| **1** | **32** | **-16.67** | small | 3 | 1 | [2,4,8] | plateau |
-| 2 | 30 | -16.65 | small | 3 | 1 | [2,4,8] | plateau |
-| 3 | 21 | -12.85 | small | 3 | 1 | [2,4,8] | cosine |
-| 4 | 20 | -12.82 | small | 3 | 1 | [2,4,8] | cosine |
-| 5 | 23 | -12.81 | small | 3 | 1 | [2,4,8] | cosine |
+| **1** | **34** | **-16.680** | small | 3 | 1 | [2,4,8] | plateau |
+| 2 | 32 ← used for 10-fold | -16.673 | small | 3 | 1 | [2,4,8] | plateau |
+| 3 | 33 | -16.658 | small | 3 | 1 | [2,4,8] | plateau |
+| 4 | 30 | -16.652 | small | 3 | 1 | [2,4,8] | plateau |
+| 5 | 35 | -16.632 | small | 3 | 1 | [2,4,8] | plateau |
 
-*34 total trials (20 completed, 12 pruned). Source: `optuna_cab2_v2m.db`*  
-*Top 9 trials all converged on identical hyperparameters (small, hhdc=3, cam=1, aaf=[2,4,8]).*
+*37 total trials (23 completed, 13 pruned, 1 failed). Source: `optuna_cab2_v2m.db`, summary `hpo/hpo_cab2_20260924-220154.txt`*  
+*Top 5 differ only in `lr_min` / `warmup_epochs`. The top 12 all share small filters, hhdc=3, cam=1, aaf=[2,4,8]. Plateau (≈ -16.6) clearly beats cosine-decay (≈ -12.8).*
 
 ### Key HPO Insights
 
@@ -204,6 +221,8 @@ warmup_epochs = 10
 
 These two experimental regimes have different configurations and **should not be directly equated:**
 
+The comparison below is between the Sept 8 B4/V2S 10-fold runs and the Optuna search. The October V2M 10-fold runs used the HPO configs directly.
+
 | Aspect | 10-Fold CV (Sections 1–2) | Optuna HPO (Section 3) |
 |:-------|:--------------------------|:-----------------------|
 | Decoder | Fixed `base` [32..512] | Variable (`small`/`base`/`large`) |
@@ -212,4 +231,4 @@ These two experimental regimes have different configurations and **should not be
 | Scope | 10 folds, 100 epochs, 5,000 images | 1 fold, 60 epochs, MedianPruner |
 | Metric | Test accuracy, per-class IoU | Total val_loss (negative due to AWL uncertainty) |
 
-> **Next step:** Promote HPO champion configs to full 10-fold cross-validation to benchmark generalizability against the production B4 baseline.
+> **Status (Oct 14, 2026):** The V2M champions (CAB1 t21, CAB2 t32) have been promoted to 10-fold and evaluated. The October B4 runs were evaluated the same day. Audit fixes + HPO explain most of the gain over the Sept 8 B4 baseline, and V2M adds a smaller margin on top (see the analysis doc, Section 0.3). The CAB2 B4 retrain used the old ablation config and was unstable (5 of 10 folds ≤91.5%), so it isn't a fair B4 reference for CAB2.

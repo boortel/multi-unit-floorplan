@@ -14,6 +14,7 @@ Contents:
 * [Testing](#testing)
 * [Evaluation](#evaluation)
 * [Experiments & Evaluation Results](#experiments--evaluation-results)
+* [Repository layout](#repository-layout)
 
 <details>
 <summary>Supported models and datasets</summary>
@@ -31,6 +32,7 @@ Dataset:
 - [CubiCasa5k](https://zenodo.org/records/2613548)
 - [MURF](resources)
 - [CVC-FP](http://dag.cvc.uab.es/resources/floorplans/)
+- [WAFFLE](https://tau-vailab.github.io/WAFFLE/)
 - [MLSTRUCT-FP](https://github.com/MLSTRUCT/MLSTRUCT-FP)
 
 
@@ -98,12 +100,30 @@ python evaluate_config.py <config>
 ## Experiments & Evaluation Results
 Comprehensive benchmarks, 10-fold cross-validation evaluations, and ablation studies on the **CubiCasa5k** dataset are documented in:
 * **[Experiment Registry Manifest](results/EXPERIMENT_REGISTRY.md):** Complete registry of all training runs, cross-validation logs, and test evaluations.
-* **[Experiment Analysis & 10-Fold Cross-Validation Evaluation](results/experiment_analysis_and_kfold_evaluation.md):** In-depth post-mortem analysis comparing CAB1 & CAB2 (EfficientNetB4, EfficientNetV2S) against CubiCasa5k and Zeng baselines on the 400 test images.
-* **[Hyperparameter Search & Recommendations](results/hyperparameter_recommendations.md):** Architecture ablation study (backbones B0–B4, HHDC, CAM, AAF) and verified hyperparameters.
+* **[Experiment Analysis & 10-Fold Cross-Validation Evaluation](results/experiment_analysis_and_kfold_evaluation.md):** Analysis comparing CAB1 & CAB2 (EfficientNetV2M HPO, EfficientNetB4, EfficientNetV2S) against CubiCasa5k and Zeng baselines on the 400 test images.
+* **[Hyperparameter Search & Recommendations](results/hyperparameter_recommendations.md):** Architecture ablation study (backbones B0–B4, HHDC, CAM, AAF), Optuna HPO studies and the recommended configs.
 * **[Test Set Evaluation Guide & Runbook](results/TEST_EVALUATION_GUIDE.md):** Execution runbook and instructions for running 10-fold test evaluations on GPU.
-* **[Training Accelerations & Optimizations](TRAINING_OPTIMIZATIONS.md):** Mixed precision (`mixed_float16`), XLA JIT, and vectorized loss optimizations providing a ~5×–7× training speedup.
+* **[Training Accelerations & Optimizations](docs/TRAINING_OPTIMIZATIONS.md):** Mixed precision (`mixed_float16`), XLA JIT, and vectorized loss optimizations providing a ~5×–7× training speedup.
+* **[Codebase Audit](docs/CODEBASE_AUDIT.md):** Bugs found and fixed in training, evaluation, data pipeline and models (Sept 2026).
+* **[Overview across all datasets](results/OVERVIEW_all_datasets.md):** our models on CubiCasa5k, R3D, CVC-FP and WAFFLE in one comparable 3-class format (zero-shot and fine-tuned), the best models against SOTA, and a short summary (Nov 11, 2026).
+* **[Comparison with the paper & SOTA](results/COMPARISON_paper_sota.md):** CAB1/CAB2 (B4, V2M) against arXiv:2408.01526 and published methods on CubiCasa5k, R3D, CVC-FP and WAFFLE, both zero-shot and fine-tuned (Nov 2026). Raw results are in [`results/cross_dataset/`](results/cross_dataset/SUMMARY.md) and [`results/finetune/`](results/finetune/SUMMARY.md).
 
-> **Key Finding:** While CubiCasa5k achieves high overall accuracy via conservative background prediction, **CAB1 (EfficientNetB4) achieves +7.54% higher foreground pixel accuracy (69.19% vs 61.65%) and +13.24% higher wall recall (79.78% vs 66.54%)**, reducing missed wall segments by 40% and enforcing closed room boundaries via Adaptive Affinity Fields (AAF). See [Section 7 of the Evaluation Report](results/experiment_analysis_and_kfold_evaluation.md#7-architectural--empirical-superiorities-of-cab1--cab2-over-cubicasa5k).
+> **Key Finding (Oct 14, 2026):** The HPO-tuned **EfficientNetV2M** models are the best on the 400-image test set. **CAB1 V2M reaches 96.37% accuracy and 80.16% foreground (no-BG) accuracy. CAB2 V2M reaches 61.99% macro IoU.** CubiCasa5k scores 95.61% / 61.65% / 51.89%. Door, stair and railing IoU roughly doubled to tripled compared with the earlier B4 models. Note that these models were also the first trained after the audit fixes. See [Section 0 of the Evaluation Report](results/experiment_analysis_and_kfold_evaluation.md#0-hpo-champion-models--efficientnetv2m-october-2026).
+
+> **Cross-dataset (Nov 10, 2026):** Trained only on CubiCasa5k, the best models reach walls IoU of 82.1 on R3D and 66.5 on CVC-FP zero-shot. That is the strongest zero-shot CVC-FP result we found. After fine-tuning only the decoder, walls IoU is **91.2–93.4 on R3D (paper: 90)** and 79–81 on CVC-FP (paper: 88–91). On the WAFFLE benchmark (historic and public buildings, Nov 11) mean IoU goes from 38–39 zero-shot to 55–57 fine-tuned (walls IoU 74–76). Zero-shot walls IoU (54.5–58.1) beats the WAFFLE paper's CubiCasa5K model (48.8). See [the comparison](results/COMPARISON_paper_sota.md).
+
+## Repository layout
+```
+configs/           Model and dataset configs (mmcv-style)
+datasets/          Dataset parsing, masks, heatmaps, tfrecord creation
+segmentation_models/, training/, utils/   Models, losses, trainer, helpers
+kfold_patch/       10-fold CV variants, k-fold eval configs, Optuna HPO, evaluator
+scripts/           Shell runners for k-fold training & evaluation (run from repo root)
+results/           Evaluation outputs and result write-ups (see EXPERIMENT_REGISTRY.md)
+docs/              Codebase audit and training-optimization notes
+optuna_*.db        Active Optuna studies (default path used by kfold_patch/optuna_hpo.py)
+models/, logs/, data/   Checkpoints, run logs, datasets (not tracked)
+```
 
 ## TODO:
 - [x] Add Config environment - Done from [mmcv](https://github.com/open-mmlab/mmcv/tree/v1.7.1)

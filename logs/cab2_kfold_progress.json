@@ -1,0 +1,47 @@
+{
+  "updated_at": "2026-10-14T11:16:55.011116",
+  "folds": {
+    "0": {
+      "state": "completed",
+      "path": "/workspaces/multi-unit-floorplan/models/cab2_cab2_hpo_trial32_v2m_EfficientNetV2M_16,32,64,128,256_cubicasa5k_20261011-062640/0"
+    },
+    "1": {
+      "state": "completed",
+      "path": "/workspaces/multi-unit-floorplan/models/cab2_cab2_hpo_trial32_v2m_EfficientNetV2M_16,32,64,128,256_cubicasa5k_20261011-150241/1"
+    },
+    "2": {
+      "state": "completed",
+      "path": "/workspaces/multi-unit-floorplan/models/cab2_cab2_hpo_trial32_v2m_EfficientNetV2M_16,32,64,128,256_cubicasa5k_20261011-234721/2"
+    },
+    "3": {
+      "state": "completed",
+      "path": "/workspaces/multi-unit-floorplan/models/cab2_cab2_hpo_trial32_v2m_EfficientNetV2M_16,32,64,128,256_cubicasa5k_20261012-081026/3"
+    },
+    "4": {
+      "state": "completed",
+      "path": "/workspaces/multi-unit-floorplan/models/cab2_cab2_hpo_trial32_v2m_EfficientNetV2M_16,32,64,128,256_cubicasa5k_20261012-201652/4"
+    },
+    "5": {
+      "state": "completed",
+      "path": "/workspaces/multi-unit-floorplan/models/cab2_cab2_hpo_trial32_v2m_EfficientNetV2M_16,32,64,128,256_cubicasa5k_20261013-132846/5"
+    },
+    "6": {
+      "state": "completed",
+      "path": "/workspaces/multi-unit-floorplan/models/cab2_cab2_hpo_trial32_v2m_EfficientNetV2M_16,32,64,128,256_cubicasa5k_20261013-123859/6"
+    },
+    "7": {
+      "state": "completed",
+      "path": "/workspaces/multi-unit-floorplan/models/cab2_cab2_hpo_trial32_v2m_EfficientNetV2M_16,32,64,128,256_cubicasa5k_20261013-210759/7"
+    },
+    "8": {
+      "state": "completed",
+      "path": "/workspaces/multi-unit-floorplan/models/cab2_cab2_hpo_trial32_v2m_EfficientNetV2M_16,32,64,128,256_cubicasa5k_20261013-132137/8"
+    },
+    "9": {
+      "state": "completed",
+      "path": "/workspaces/multi-unit-floorplan/models/cab2_cab2_hpo_trial32_v2m_EfficientNetV2M_16,32,64,128,256_cubicasa5k_20261012-192350/9"
+    }
+  },
+  "completed_count": 10,
+  "gpu3_active": false
+}
