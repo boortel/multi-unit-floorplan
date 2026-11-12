@@ -205,3 +205,5 @@ Earlier, verbose versions of the four result MDs were kept in `results/trash/`. 
 | `backbone` | `EfficientNetB4` · `EfficientNetV2S` · `EfficientNetV2M` · `VGG16` |
 
 The evaluator writes new files to the `results/` root. Move them into `official/` (or `archive/`) once they're reviewed.
+
+**Backbone-unfrozen fine-tuning** (started Nov 11, 2026; GPU 0). Motivation: zero-shot openings IoU falls from ~68 on CubiCasa to 24–27 on CVC-FP / WAFFLE, and decoder-only fine-tuning recovers openings to only ~65 (CVC-FP) and ~37 (WAFFLE). `scripts/run_finetune_unfrozen.sh` runs `finetune_cross_dataset.py --unfreeze` on the same checkpoints, splits, augmentation and schedule as the frozen runs (R3D: LR 1e-5, 150 epochs; CVC-FP / WAFFLE: LR 3e-5, 300 epochs). All encoder Conv/DepthwiseConv weights are trained. BatchNorm stays frozen in inference mode because batch size is 1. Trainable params: ~1.4M → ~10.9M for CAB2 V2M. Outputs: `finetune_unfrozen/*.json` + `SUMMARY.md`, `models/finetune_unfrozen/`, `logs/finetune_unfrozen/`.

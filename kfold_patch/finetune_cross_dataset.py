@@ -6,7 +6,9 @@ The 6-class CubiCasa head is kept unchanged. Its softmax output is merged into t
 3 target classes by summing probabilities:
     bg = bg + railings + stairs,  walls = walls,  openings = doors + windows
 and trained with the asymmetric unified focal loss (as in the original CAB training).
-The backbone stays frozen as in the saved checkpoint.
+By default the backbone stays frozen as in the saved checkpoint. With --unfreeze, all backbone
+Conv/DepthwiseConv weights become trainable too (BatchNorm layers stay frozen, i.e. in inference mode
+with their CubiCasa statistics, since batch size is 1); same LR for backbone and decoder.
 
 Splits:
     r3d: official test (53) as test; official train (179) -> 80/20 train/val (seeded).
@@ -134,6 +136,24 @@ def wrap(base):
     return tf.keras.Model(inp, out)
 
 
+def unfreeze_backbone(model):
+    """Make every frozen non-BN, non-Normalization layer trainable (the encoder). Returns #layers unfrozen."""
+    n = 0
+    for m in model.submodules:
+        if isinstance(m, tf.keras.Model) and not m.trainable:
+            m.trainable = True
+    for m in model.submodules:
+        if isinstance(m, tf.keras.Model) or not isinstance(m, tf.keras.layers.Layer) or not m.weights:
+            continue
+        name = type(m).__name__
+        if 'BatchNormalization' in name or name == 'Normalization':
+            m.trainable = False
+        elif not m.trainable:
+            m.trainable = True
+            n += 1
+    return n
+
+
 def adabn(model, ds):
     """Recompute every BatchNorm layer's moving mean/var as the cumulative average over `ds` images."""
     bns = [m for m in model.submodules if 'BatchNormalization' in type(m).__name__]
@@ -176,6 +196,8 @@ def main():
     ap.add_argument('--lr', type=float, default=1e-5)
     ap.add_argument('--patience', type=int, default=25)
     ap.add_argument('--out', default='results/finetune')
+    ap.add_argument('--models_out', default='models/finetune')
+    ap.add_argument('--unfreeze', action='store_true', help='also fine-tune the backbone (BN stays frozen)')
     args = ap.parse_args()
     sm.set_framework('tf.keras')
     tf.random.set_seed(args.split)
@@ -196,9 +218,13 @@ def main():
     cm_ada = confusion(model, te)
     model.set_weights(w0)
 
+    n_unfrozen = unfreeze_backbone(model) if args.unfreeze else 0
+    n_trainable = int(sum(v.shape.num_elements() for v in model.trainable_variables))
+    print(f'unfrozen backbone layers: {n_unfrozen}, trainable params: {n_trainable}', flush=True)
+
     model.compile(optimizer=tf.keras.optimizers.Adam(args.lr), loss=loss_functions.asym_unified_focal_loss(3))
     tag = f'{args.dataset}_{args.model}_{args.backbone}_split{args.split}_{time.strftime("%Y%m%d-%H%M%S")}'
-    ckpt = os.path.join('models/finetune', tag, 'best.weights.h5')
+    ckpt = os.path.join(args.models_out, tag, 'best.weights.h5')
     os.makedirs(os.path.dirname(ckpt), exist_ok=True)
     cbs = [tf.keras.callbacks.ModelCheckpoint(ckpt, monitor='val_loss', save_best_only=True, save_weights_only=True),
            tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=8, min_lr=1e-7),
@@ -213,6 +239,7 @@ def main():
            'split': args.split, 'n_train': len(sp['train'][1]), 'n_val': len(sp['val'][1]), 'n_test': len(sp['test'][1]),
            'epochs_run': len(hist.history['loss']), 'best_epoch': int(np.argmin(hist.history['val_loss'])) + 1,
            'minutes': (time.time() - tic) / 60, 'lr': args.lr, 'aug': 'geom+photo', 'n_bn_adabn': n_bn,
+           'backbone_frozen': not args.unfreeze, 'n_unfrozen_layers': n_unfrozen, 'n_trainable_params': n_trainable,
            'cm_zeroshot': cm_zero.tolist(), 'cm_adabn': cm_ada.tolist(), 'cm_finetuned': cm_ft.tolist(),
            'zeroshot': metrics(cm_zero), 'adabn': metrics(cm_ada), 'finetuned': metrics(cm_ft), 'weights': ckpt}
     with open(os.path.join(args.out, tag + '.json'), 'w') as fh:

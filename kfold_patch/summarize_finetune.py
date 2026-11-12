@@ -8,8 +8,10 @@ arXiv:2408.01526 Table IV.
 
 Usage:
     python kfold_patch/summarize_finetune.py > results/finetune/SUMMARY.md
+    python kfold_patch/summarize_finetune.py results/finetune_unfrozen > results/finetune_unfrozen/SUMMARY.md
 """
 import glob
+import sys
 import json
 from collections import defaultdict
 
@@ -32,7 +34,8 @@ def fmt(cm):
 
 def main():
     runs = defaultdict(dict)
-    for p in sorted(glob.glob('results/finetune/*.json')):  # top level only (old runs live in subfolders)
+    root = sys.argv[1] if len(sys.argv) > 1 else 'results/finetune'
+    for p in sorted(glob.glob(f'{root}/*.json')):  # top level only (old runs live in subfolders)
         r = json.load(open(p))
         runs[(r['dataset'], r['model'], r['backbone'])][r['split']] = r  # sorted -> latest per split wins
 
