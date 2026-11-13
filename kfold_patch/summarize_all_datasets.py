@@ -11,7 +11,8 @@ Sources (latest file wins):
     Zero-shot (10 fold models pooled):
         results/cross_dataset/{r3d_test,cvc_all,waffle_all}_kfold_<model>_<backbone>_<ts>_fold_cms.npy
     Fine-tuned (one CubiCasa fold model per combination, test CMs pooled over splits):
-        results/finetune/{r3d,cvc,waffle}_<model>_<backbone>_split<k>_<ts>.json
+        results/finetune/{r3d,cvc,waffle}_<model>_<backbone>_split<k>_<ts>.json            (decoder only, backbone frozen)
+        results/finetune_unfrozen/{r3d,cvc,waffle}_<model>_<backbone>_split<k>_<ts>.json   (backbone unfrozen)
 
 Usage:
     python kfold_patch/summarize_all_datasets.py > results/ALL_DATASETS_tables.md
@@ -36,9 +37,15 @@ CUBI_SOURCES = {
     ('zeng', 'VGG16'): 'test_kfold_zeng_VGG16_20260908-071630',
 }
 TO3 = np.array([0, 1, 0, 2, 2, 0])  # CubiCasa 6 classes -> bg / walls / openings
-COLS = [('cubi', 'CubiCasa5k test (in-domain)'), ('r3d_zs', 'R3D test zero-shot'), ('cvc_zs', 'CVC-FP zero-shot'),
-        ('waffle_zs', 'WAFFLE zero-shot'), ('r3d_ft', 'R3D fine-tuned'), ('cvc_ft', 'CVC-FP fine-tuned'),
-        ('waffle_ft', 'WAFFLE fine-tuned')]
+# (key, dataset, setting); key suffix: _zs zero-shot, _ft fine-tuned frozen backbone, _ftu fine-tuned unfrozen backbone
+COLS = [('cubi', 'CubiCasa5k test', 'in-domain'), ('r3d_zs', 'R3D test', 'zero-shot'), ('cvc_zs', 'CVC-FP', 'zero-shot'),
+        ('waffle_zs', 'WAFFLE', 'zero-shot'), ('r3d_ft', 'R3D', 'fine-tuned frozen'),
+        ('cvc_ft', 'CVC-FP', 'fine-tuned frozen'), ('waffle_ft', 'WAFFLE', 'fine-tuned frozen'),
+        ('r3d_ftu', 'R3D', 'fine-tuned unfrozen'), ('cvc_ftu', 'CVC-FP', 'fine-tuned unfrozen'),
+        ('waffle_ftu', 'WAFFLE', 'fine-tuned unfrozen')]
+FT_DIRS = (('results/finetune', '_ft'), ('results/finetune_unfrozen', '_ftu'))
+MEANS = (('_zs', 'Mean of 3 zero-shot'), ('_ft', 'Mean of 3 fine-tuned frozen'),
+         ('_ftu', 'Mean of 3 fine-tuned unfrozen'))
 
 
 def merge6(cm):
@@ -78,22 +85,24 @@ def collect():
             if f:
                 cms = list(np.load(f))
                 data[(m, b)][col] = (sum(cms), cms)
-    ft = defaultdict(dict)
-    for p in sorted(glob.glob('results/finetune/*.json')):
-        r = json.load(open(p))
-        ft[(r['model'], r['backbone'], r['dataset'])][r['split']] = np.array(r['cm_finetuned'])
-    for (m, b, ds), splits in ft.items():
-        cms = [splits[k] for k in sorted(splits)]
-        data[(m, b)][f'{ds}_ft'] = (sum(cms), cms)
+    for d, suffix in FT_DIRS:
+        ft = defaultdict(dict)
+        for p in sorted(glob.glob(f'{d}/*.json')):  # sorted by timestamp, so the latest run of a split wins
+            r = json.load(open(p))
+            ft[(r['model'], r['backbone'], r['dataset'])][r['split']] = np.array(r['cm_finetuned'])
+        for (m, b, ds), splits in ft.items():
+            cms = [splits[k] for k in sorted(splits)]
+            data[(m, b)][f'{ds}{suffix}'] = (sum(cms), cms)
     return data
 
 
 def compact(data, key, title, with_std=False):
-    hdr = '| Model | ' + ' | '.join(c[1] for c in COLS) + ' | Mean of 3 zero-shot | Mean of 3 fine-tuned |'
-    print(f'\n### {title}\n\n{hdr}\n|' + '---|' * (len(COLS) + 3))
+    hdr = ('| Model | ' + ' | '.join(f'{ds} {st}' for _, ds, st in COLS) + ' | '
+           + ' | '.join(t for _, t in MEANS) + ' |')
+    print(f'\n### {title}\n\n{hdr}\n|' + '---|' * (len(COLS) + len(MEANS) + 1))
     for mb in MODELS:
-        cells, zs, ftv = [], [], []
-        for col, _ in COLS:
+        cells, vals = [], defaultdict(list)
+        for col, _, _ in COLS:
             if col not in data[mb]:
                 cells.append('–')
                 continue
@@ -103,18 +112,17 @@ def compact(data, key, title, with_std=False):
             if with_std and len(parts) > 1:
                 s += f' ± {np.std([metrics(p)[key] for p in parts]):.1f}'
             cells.append(s)
-            (zs if col.endswith('_zs') else ftv if col.endswith('_ft') else []).append(v)
-        mz = f'{np.mean(zs):.1f}' if len(zs) == 3 else '–'
-        mf = f'{np.mean(ftv):.1f}' if len(ftv) == 3 else '–'
-        print(f'| {NAMES[mb[0]]} {BB[mb[1]]} | ' + ' | '.join(cells) + f' | {mz} | {mf} |')
+            if col != 'cubi':
+                vals['_' + col.rsplit('_', 1)[1]].append(v)
+        means = [f'{np.mean(vals[sfx]):.1f}' if len(vals[sfx]) == 3 else '–' for sfx, _ in MEANS]
+        print(f'| {NAMES[mb[0]]} {BB[mb[1]]} | ' + ' | '.join(cells + means) + ' |')
 
 
 def full(data):
     print('\n### All results, Rec / F1 / IoU (%)\n')
     print('| Dataset | Setting | Model | Walls Rec / F1 / IoU | Openings Rec / F1 / IoU | Mean Rec / F1 / IoU | mIoU std |')
     print('|---|---|---|---|---|---|---|')
-    for col, title in COLS:
-        ds, setting = (title.rsplit(' ', 1) if col != 'cubi' else ('CubiCasa5k test', 'in-domain'))
+    for col, ds, setting in COLS:
         for mb in MODELS:
             if col not in data[mb]:
                 continue
@@ -131,7 +139,8 @@ def main():
     print('Generated by `kfold_patch/summarize_all_datasets.py`. 3 classes everywhere: bg / walls / openings '
           '(doors + windows); railings, stairs and WAFFLE interior count as bg. Pixels pooled over fold models '
           '(CubiCasa, zero-shot: 10 folds) or test splits (fine-tuned: R3D 1 split, CVC-FP and WAFFLE 5-fold CV). '
-          '"±" = std across folds/splits.')
+          '"Fine-tuned frozen" trains only the decoder; "fine-tuned unfrozen" also trains the encoder '
+          '(BatchNorm stays frozen). "±" = std across folds/splits.')
     compact(data, 'mean_iou', 'Mean IoU (walls + openings)', with_std=True)
     compact(data, 'walls_iou', 'Walls IoU')
     compact(data, 'open_iou', 'Openings IoU')
