@@ -6,9 +6,9 @@ Compiled 2026-11-11; fine-tuning with the backbone unfrozen added 2026-11-13. On
 
 - **Best models:** the two **EfficientNetV2M** variants. **CAB2 V2M** is the best zero-shot model: mean IoU 51.6 over R3D, CVC-FP and WAFFLE, with the smallest fold-to-fold spread. **CAB1 V2M** is the best in-domain on CubiCasa5k (mean IoU 69.2). After fine-tuning with the backbone unfrozen, CAB2 V2M (73.0 over the three datasets) and CAB1 V2M (72.6) are the best. CAB2 B4 (68.8) is the weakest, mostly because of CVC-FP.
 - **Against our own baselines** (the CubiCasa5k and DeepFloorplan/Zeng architectures, trained on the same folds): on CubiCasa5k the V2M models are +8 to +12 mean IoU ahead. CAB2 B4 (51.9) is below both baselines there. Zero-shot, every CAB model is ahead, by +8 to +20 averaged over the three datasets (V2M: +16 to +20), so the CAB models generalize much better.
-- **CubiCasa5k:** CAB matches the original CubiCasa5k multi-task model on walls (IoU 72.8 vs 73.0) and beats it on doors and windows. It remains below the CAB paper's numbers, which come from a curated 560-plan subset rather than the full noisy test set.
-- **R3D:** fine-tuning reaches walls IoU 91–94, above the CAB paper (90). With the backbone unfrozen, openings recall is 84–87, above DeepFloorplan's 83 (walls recall 97 vs 98), and CAB2 V2M reaches mean IoU 83.2 (decoder only: 80.1–80.9). Zero-shot, walls IoU is already 82.
-- **CVC-FP:** CAB2 V2M is the strongest zero-shot result published (walls IoU 66.5 vs 29.6). After fine-tuning with the backbone unfrozen, walls IoU is 82–83 (CAB2 B4: 74), still about 8 below the CAB paper's in-domain 91. The best model, CAB1 V2M, reaches mean IoU 79.8 and openings IoU 77.0 (decoder only: 73.8 and 67.4).
+- **CubiCasa5k:** CAB matches the original CubiCasa5k multi-task model on walls (IoU 72.8 vs 73.0) and beats it on doors and windows. It remains below the numbers of Kratochvila et al., which come from a curated 560-plan subset rather than the full noisy test set.
+- **R3D:** fine-tuning reaches walls IoU 91–94, above Kratochvila et al. (90). With the backbone unfrozen, openings recall is 84–87, above DeepFloorplan's 83 (walls recall 97 vs 98), and CAB2 V2M reaches mean IoU 83.2 (decoder only: 80.1–80.9). Zero-shot, walls IoU is already 82.
+- **CVC-FP:** CAB2 V2M is the strongest zero-shot result published (walls IoU 66.5 vs 29.6). After fine-tuning with the backbone unfrozen, walls IoU is 82–83 (CAB2 B4: 74), still about 8 below the in-domain 91 of Kratochvila et al.. The best model, CAB1 V2M, reaches mean IoU 79.8 and openings IoU 77.0 (decoder only: 73.8 and 67.4).
 - **WAFFLE (historic and public buildings):** the hardest dataset. Zero-shot, CAB beats the official CubiCasa5k model on walls (IoU 54.5–58.1 vs 48.8) but not the diffusion wall model (63.2). After fine-tuning, walls IoU is 74–77 and mean IoU 56–59. Unfreezing the backbone changes WAFFLE by only −0.5 to +2.2 mean IoU. Nobody has published a fine-tuned result to compare against.
 - **Unfreezing the backbone** (Nov 13) helps every model on R3D and CVC-FP: mean IoU +1.0 to +3.1 on R3D and +1.9 to +6.0 on CVC-FP, mostly through openings IoU (CVC-FP: +3.4 to +9.6). Walls IoU changes less (R3D +0.3 to +1.4, CVC-FP +0.4 to +2.7).
 - **Main gap:** openings on WAFFLE. Zero-shot openings IoU drops from 68 on CubiCasa to 24–27 on CVC-FP and WAFFLE. Fine-tuning brings CVC-FP openings to 72–77, but WAFFLE openings stay at 37–42 even with the backbone unfrozen, and WAFFLE runs still stop early (best epochs 3–70). So the frozen backbone was not WAFFLE's main limit; the small training set (about 65 plans per fold) and the very diverse drawing styles are more likely.
@@ -68,7 +68,7 @@ Only like-for-like metrics are compared; the setting column says whether a metho
 | CubiCasa5k multi-task (Kalervo et al., SCIA 2019) | **73.0** | 53.6 | 66.8 |
 | **Ours CAB1 V2M** | 72.8 | 56.2 | 67.3 |
 | **Ours CAB2 V2M** | 68.7 | **59.2** | **69.9** |
-| *CAB paper (560-plan curated subset, not the same test set)* | *83* | *70* | *82* |
+| *Kratochvila et al. (560-plan curated subset, not the same test set)* | *83* | *70* | *82* |
 | *FGSSNet (walls only, 64×64 crops, normalized wall width)* | *78.3* | – | – |
 
 ### R3D (official test, 53 plans)
@@ -77,21 +77,21 @@ Only like-for-like metrics are compared; the setting column says whether a metho
 |---|---|---|---|---|---|
 | DeepFloorplan (Zeng et al., ICCV 2019) | trained on R3D | **98** | 83 | – | – ¹ |
 | Offset-guided attention (Wang & Sun, 2022) | trained on R3D | 95 | 83 | – | – ¹ |
-| CAB paper, CAB1 / CAB2 | trained on R3D | 94 | – | 90 | 82 ² |
+| Kratochvila et al., CAB1 / CAB2 | trained on R3D | 94 | – | 90 | 82 ² |
 | **Ours CAB2 V2M, fine-tuned, unfrozen** | CubiCasa → R3D | 97.2 | **86.8** | 93.3 | **83.2** |
 | **Ours CAB1 B4, fine-tuned, unfrozen** | CubiCasa → R3D | 97.4 | 85.6 | **93.7** | 82.5 |
 | Ours CAB1 B4, fine-tuned, frozen | CubiCasa → R3D | 97.4 | 83.4 | 93.4 | 80.9 |
 | **Ours CAB2 V2M, zero-shot** | never saw R3D | 85.1 | 68.9 | 82.1 | 68.7 |
 | DeepLabV3+ / PSPNet (as reported by Zeng et al.) | trained on R3D | 93 / 91 | 60 / 54 | – | – ¹ |
 
-¹ Their mIoU includes the room classes, so it is not comparable. ² The CAB paper's "Mean" class set is not defined.
+¹ Their mIoU includes the room classes, so it is not comparable. ² The "Mean" class set of Kratochvila et al. is not defined.
 
 ### CVC-FP (122 plans)
 
 | Method | Setting | Walls F1 | Walls IoU | Openings F1 | Mean IoU |
 |---|---|---|---|---|---|
-| CAB paper, CAB2 | trained on CVC-FP | **95** | **91** | – | 82 ² |
-| CAB paper, CAB1 | trained on CVC-FP | 94 | 88 | – | 77 ² |
+| Kratochvila et al., CAB2 | trained on CVC-FP | **95** | **91** | – | 82 ² |
+| Kratochvila et al., CAB1 | trained on CVC-FP | 94 | 88 | – | 77 ² |
 | Dodge et al. (MVA 2017), U-Net (Versailles-FP paper) | trained on CVC-FP | – | 94.4 / 95.0 ³ | – | – |
 | **Ours CAB1 V2M, fine-tuned, unfrozen** | CubiCasa → CVC-FP | 90.5 | 82.6 | **87.0** | **79.8** |
 | Ours CAB1 V2M, fine-tuned, frozen | CubiCasa → CVC-FP | 89.1 | 80.3 | 80.5 | 73.8 |

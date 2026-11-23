@@ -1,23 +1,23 @@
-# CAB1/CAB2 (EfficientNet B4 / V2M) vs. the original paper and published methods
+# CAB1/CAB2 (EfficientNet B4 / V2M) vs. Kratochvila et al. and published methods
 
 Compiled 2026-11-09; fine-tuning sections (§2c, §3c) added 2026-11-09/10; WAFFLE (§4, §4b) added 2026-11-11; backbone-unfrozen fine-tuning rows added 2026-11-13. Original paper: Kratochvila et al., *Recognizing and Reconstructing a Multi-Unit Floor Plan*, arXiv:2408.01526 (v2, 2026), Tables III–IV.
 
-For one comparable 3-class view of all datasets, see [`OVERVIEW_all_datasets.md`](OVERVIEW_all_datasets.md).
+For one comparable 3-class view of all datasets, see [`OVERVIEW_all_datasets.md`](OVERVIEW_all_datasets.md). For related work not cited by Kratochvila et al. (Knechtel 2024, MuraNet, MitUNet, SALI-FP, new datasets) and suggested experiments, see [`LITERATURE_REVIEW.md`](LITERATURE_REVIEW.md).
 
 All numbers are pixel-wise and given in %. Rec = recall (equal to DeepFloorplan's "class accuracy"), F1, IoU.
 
 ## Read this first: what is comparable
 
-| | This repo (k-fold, EfficientNet backbones) | Original paper (CAB1/CAB2) |
+| | This repo (k-fold, EfficientNet backbones) | Kratochvila et al. (CAB1/CAB2) |
 |---|---|---|
 | Training data | CubiCasa5k only: 4200 train + val, 10-fold CV, one model per fold | A separate model per dataset (60/20/20 split) |
 | CubiCasa test set | CubiCasa5k official test (400 plans), pooled over the 10 fold models | "Cubicasa": a refined 560-plan subset of CubiCasa5k |
 | R3D / CVC-FP / WAFFLE | **Zero-shot** (never trained on them), plus **fine-tuned** rows (§2c, §3c, §4): one CubiCasa fold model per combination, fine-tuned either decoder-only (backbone frozen) or with the encoder unfrozen | Trained and tested in-domain |
 | Opening classes on R3D/CVC/WAFFLE | doors + windows → *openings* | not stated; "Mean" class set not defined |
 
-So on R3D and CVC-FP the paper's numbers (and the published results below) are an **in-domain upper bound** for our zero-shot rows, which measure **generalization**. The fine-tuned rows are in-domain and directly comparable in setting (R3D: 143 train / 36 val from the official 179 train plans, official 53-plan test; CVC-FP: 5-fold CV, 60/20/20, test confusion matrices pooled over folds). On CubiCasa the subsets differ. The paper itself notes that the full CubiCasa5k annotations are noisier, which lowers every metric on the full test set.
+So on R3D and CVC-FP the numbers of Kratochvila et al. (and the published results below) are an **in-domain upper bound** for our zero-shot rows, which measure **generalization**. The fine-tuned rows are in-domain and directly comparable in setting (R3D: 143 train / 36 val from the official 179 train plans, official 53-plan test; CVC-FP: 5-fold CV, 60/20/20, test confusion matrices pooled over folds). On CubiCasa the subsets differ. Kratochvila et al. themselves note that the full CubiCasa5k annotations are noisier, which lowers every metric on the full test set.
 
-Our "Mean" on CubiCasa = mean over the 5 foreground classes (walls, railings, doors, windows, stairs), matching the paper's Table III. On R3D/CVC/WAFFLE it is the mean over walls + openings.
+Our "Mean" on CubiCasa = mean over the 5 foreground classes (walls, railings, doors, windows, stairs), matching Table III of Kratochvila et al.. On R3D/CVC/WAFFLE it is the mean over walls + openings.
 
 ### Evaluation protocol and data splits for fine-tuning
 
@@ -26,7 +26,7 @@ The datasets differ in whether they ship a test split, so fine-tuning (§2c, §3
 | Dataset | Official split? | Train | Validation | Test | Reported numbers |
 |---|---|---|---|---|---|
 | R3D | Yes: 179 train / 53 test (`data/r3d/train`, `data/r3d/test`), the split from DeepFloorplan (Zeng et al., ICCV 2019) that published R3D results use | 143 plans: a seeded random 80% of the official train set | 36 plans: the remaining 20% of the official train set | The 53 official test plans | One run per model on the official test set |
-| CVC-FP | No: 122 plans in one folder (`data/cvc/ImagesGT`) | 3 of 5 folds (72–74 plans) | The next fold, *k*+1 mod 5 (24–25 plans) | Fold *k* (24–25 plans) | 5-fold cross-validation (60/20/20, the ratio the CAB paper states). Test confusion matrices are pooled over the 5 runs, so each plan is tested exactly once, by a model that never trained on it |
+| CVC-FP | No: 122 plans in one folder (`data/cvc/ImagesGT`) | 3 of 5 folds (72–74 plans) | The next fold, *k*+1 mod 5 (24–25 plans) | Fold *k* (24–25 plans) | 5-fold cross-validation (60/20/20, the ratio Kratochvila et al. state). Test confusion matrices are pooled over the 5 runs, so each plan is tested exactly once, by a model that never trained on it |
 | WAFFLE | No: 109 usable benchmark plans (110 minus one misaligned mask) | 3 of 5 folds (65–66 plans) | Next fold (21–22 plans) | Fold *k* (21–22 plans) | Same 5-fold protocol as CVC-FP |
 
 Checked on 2026-11-13: within every run, train, validation and test are disjoint, and on CVC-FP and WAFFLE the five test folds cover every plan exactly once.
@@ -36,9 +36,9 @@ Rules within each run:
 - AdaBN recomputes BatchNorm statistics on the **training** images only.
 - The starting checkpoint is a CubiCasa5k fold model, chosen by its CubiCasa5k validation score. It has never seen R3D, CVC-FP or WAFFLE.
 
-Comparability with the CAB paper:
-- **R3D** uses the same 53 official test plans, so the fine-tuned rows are directly comparable on test data. The paper does not say how it took validation data from the 179 training plans.
-- **CVC-FP:** the paper reports a 60/20/20 split but does not list which plans are in each part. Our 5-fold cross-validation matches the protocol and the ratio, but not the paper's test plans. Pooling over all 122 plans also gives a less noisy estimate than a single 20% test split (about 24 plans).
+Comparability with Kratochvila et al.:
+- **R3D** uses the same 53 official test plans, so the fine-tuned rows are directly comparable on test data. Kratochvila et al. do not say how they took validation data from the 179 training plans.
+- **CVC-FP:** Kratochvila et al. report a 60/20/20 split but does not list which plans are in each part. Our 5-fold cross-validation matches the protocol and the ratio, but not their test plans. Pooling over all 122 plans also gives a less noisy estimate than a single 20% test split (about 24 plans).
 
 Caveat on hyperparameter choice: the CVC-FP fine-tuning learning rate was raised from 1e-5 to 3e-5 after a first pass. The documented reason is training-side: those runs were still improving at the 150-epoch limit. However, both passes were also compared on pooled test scores (§3c, "Learning-rate history"), so this choice was not strictly blind to the test folds. WAFFLE and the unfrozen runs reused these settings without further tuning. The effect is probably small. A strictly clean protocol would choose the learning rate by validation loss alone, or use nested cross-validation.
 
@@ -46,9 +46,9 @@ Caveat on hyperparameter choice: the CVC-FP fine-tuning learning rate was raised
 
 ## 1. CubiCasa5k
 
-### 1a. Ours vs. the paper (Table III)
+### 1a. Ours vs. Kratochvila et al. (Table III)
 
-| Class | **Paper CAB1** Rec / F1 / IoU | **Paper CAB2** | Ours CAB1 B4 | Ours CAB1 V2M | Ours CAB2 B4 | **Ours CAB2 V2M** |
+| Class | **Kratochvila et al. CAB1** Rec / F1 / IoU | **Kratochvila et al. CAB2** | Ours CAB1 B4 | Ours CAB1 V2M | Ours CAB2 B4 | **Ours CAB2 V2M** |
 |---|---|---|---|---|---|---|
 | Walls | 90 / 90 / 83 | 90 / 90 / 83 | 79.0 / 80.8 / 67.8 | **83.7 / 84.3 / 72.8** | 78.1 / 74.4 / 59.2 | 78.6 / 81.4 / 68.7 |
 | Railings | 74 / 77 / 63 | 76 / 77 / 63 | 36.5 / 43.1 / 27.5 | 37.8 / 43.1 / 27.5 | 8.5 / 13.9 / 7.5 | 37.2 / **43.8 / 28.0** |
@@ -75,12 +75,12 @@ On CubiCasa5k our best models beat the original CubiCasa5k model on windows (+3.
 
 ## 2. R3D (official 53-image test split)
 
-### 2a. Ours (zero-shot) vs. the paper (in-domain, Table IV)
+### 2a. Ours (zero-shot) vs. Kratochvila et al. (in-domain, Table IV)
 
 | Model | Walls Rec / F1 / IoU | Openings Rec / F1 / IoU | Mean Rec / F1 / IoU |
 |---|---|---|---|
-| Paper CAB1 (trained on R3D) | 94 / 94 / 90 | – | 89 / 90 / 82 |
-| Paper CAB2 (trained on R3D) | 94 / 94 / 90 | – | 89 / 90 / 82 |
+| Kratochvila et al. CAB1 (trained on R3D) | 94 / 94 / 90 | – | 89 / 90 / 82 |
+| Kratochvila et al. CAB2 (trained on R3D) | 94 / 94 / 90 | – | 89 / 90 / 82 |
 | Ours CAB1 B4 (zero-shot) | 84.0 / 89.3 / 80.7 | 64.1 / 65.5 / 48.7 | 74.1 / 77.4 / 64.7 |
 | Ours CAB1 V2M (zero-shot) | 84.9 / 89.8 / 81.5 | **70.3** / 66.9 / 50.2 | **77.6** / 78.4 / 65.9 |
 | Ours CAB2 B4 (zero-shot) | **86.8** / 86.6 / 76.4 | 50.8 / 51.6 / 34.7 | 68.8 / 69.1 / 55.6 |
@@ -97,8 +97,8 @@ The class accuracy below is per-class recall. mIoU in these papers also includes
 | DeepFloorplan (Zeng et al.) | ICCV 2019 | **98** | **83** | 89 | 63 |
 | Offset-Guided Attention Net (Wang & Sun) | arXiv 2022 | 95 | **83** | 91 | **74** |
 | Direction-aware additive kernels + GAN (Zhang et al.) | arXiv 2020 | 95 | 82 | **94** | **74** |
-| Paper CAB1 / CAB2 (wall recall) | arXiv 2024/26 | 94 | – | – | – |
-| Yang et al. (wall recall, as quoted in the paper) | 2022 | 89 | – | – | – |
+| Kratochvila et al. CAB1 / CAB2 (wall recall) | arXiv 2024/26 | 94 | – | – | – |
+| Yang et al. (wall recall, as quoted by Kratochvila et al.) | 2022 | 89 | – | – | – |
 | DeepLabV3+ (as reported by Zeng et al.) | ECCV 2018 | 93 | 60 | 85 | 50 |
 | PSPNet (as reported by Zeng et al.) | CVPR 2017 | 91 | 54 | 84 | 50 |
 | **Ours CAB2 V2M, zero-shot** | – | 85.1 | 68.9 | – | – |
@@ -116,7 +116,7 @@ Without ever seeing R3D, our V2M models beat in-domain DeepLabV3+ and PSPNet on 
 
 | Model | Setting | Walls Rec / F1 / IoU | Openings Rec / F1 / IoU | Mean Rec / F1 / IoU |
 |---|---|---|---|---|
-| Paper CAB1 / CAB2 (trained on R3D) | in-domain | 94 / 94 / 90 | – | 89 / 90 / 82 |
+| Kratochvila et al. CAB1 / CAB2 (trained on R3D) | in-domain | 94 / 94 / 90 | – | 89 / 90 / 82 |
 | Ours CAB1 B4 | zero-shot | 86.3 / 90.5 / 82.7 | 68.7 / 67.5 / 50.9 | 77.5 / 79.0 / 66.8 |
 | | AdaBN | 64.2 / 67.9 / 51.4 | 54.2 / 50.5 / 33.7 | 59.2 / 59.2 / 42.6 |
 | | **fine-tuned, frozen** | **97.4** / 96.6 / 93.4 | 83.4 / 81.3 / 68.5 | 90.4 / 88.9 / 80.9 |
@@ -134,18 +134,18 @@ Without ever seeing R3D, our V2M models beat in-domain DeepLabV3+ and PSPNet on 
 | | **fine-tuned, frozen** | 96.6 / 95.8 / 91.9 | 81.5 / 81.2 / 68.4 | 89.0 / 88.5 / 80.1 |
 | | **fine-tuned, unfrozen** | 97.2 / 96.5 / 93.3 | **86.8 / 84.5 / 73.1** | **92.0 / 90.5 / 83.2** |
 
-After fine-tuning, all four models beat the paper on R3D walls (frozen: IoU 91.2–93.4; unfrozen: 91.7–93.7; paper: 90). Unfreezing the backbone raises mean IoU by 1.0–3.1 points for every model, mostly through openings (IoU +1.7 to +4.7). CAB2 V2M unfrozen is the best (mean IoU 83.2, above the paper's 82, though the paper's "Mean" class set is not defined). That is a single test split, so differences under about 1 point, and the ranking between models, are not meaningful. AdaBN hurts every model (walls IoU −13 to −31 points).
+After fine-tuning, all four models beat Kratochvila et al. on R3D walls (frozen: IoU 91.2–93.4; unfrozen: 91.7–93.7; Kratochvila et al.: 90). Unfreezing the backbone raises mean IoU by 1.0–3.1 points for every model, mostly through openings (IoU +1.7 to +4.7). CAB2 V2M unfrozen is the best (mean IoU 83.2, above the 82 of Kratochvila et al., though their "Mean" class set is not defined). That is a single test split, so differences under about 1 point, and the ranking between models, are not meaningful. AdaBN hurts every model (walls IoU −13 to −31 points).
 
 ---
 
 ## 3. CVC-FP (122 plans)
 
-### 3a. Ours (zero-shot) vs. the paper (in-domain, Table IV)
+### 3a. Ours (zero-shot) vs. Kratochvila et al. (in-domain, Table IV)
 
 | Model | Walls Rec / F1 / IoU | Openings Rec / F1 / IoU | Mean Rec / F1 / IoU |
 |---|---|---|---|
-| Paper CAB1 (trained on CVC-FP) | 95 / 94 / 88 | – | 87 / 86 / 77 |
-| Paper CAB2 (trained on CVC-FP) | 96 / 95 / 91 | – | 91 / 90 / 82 |
+| Kratochvila et al. CAB1 (trained on CVC-FP) | 95 / 94 / 88 | – | 87 / 86 / 77 |
+| Kratochvila et al. CAB2 (trained on CVC-FP) | 96 / 95 / 91 | – | 91 / 90 / 82 |
 | Ours CAB1 B4 (zero-shot) | 74.9 / 78.5 / 64.6 | 27.0 / 39.7 / 24.7 | 50.9 / 59.1 / 44.7 |
 | Ours CAB1 V2M (zero-shot) | 76.2 / 78.2 / 64.2 | **30.5** / 42.6 / 27.1 | 53.4 / 60.4 / 45.7 |
 | Ours CAB2 B4 (zero-shot) | **78.0** / 69.0 / 52.7 | 16.9 / 24.5 / 14.0 | 47.5 / 46.8 / 33.3 |
@@ -157,7 +157,7 @@ After fine-tuning, all four models beat the paper on R3D walls (frozen: IoU 91.2
 |---|---|---|---|---|---|
 | Dodge et al. (FCN-2s) | MVA 2017 | in-domain | mean IoU 94.4 ¹ | – | – |
 | U-Net (as reported in the Versailles-FP paper) | 2021 | in-domain | mean IoU 95.01, Dice 95.65 ¹ | – | – |
-| Paper CAB2 | arXiv 2024/26 | in-domain | IoU 91, F1 95 | – | – |
+| Kratochvila et al. CAB2 | arXiv 2024/26 | in-domain | IoU 91, F1 95 | – | – |
 | Zernike-moment GNN (Graumann et al.) | arXiv 2025 | **zero-shot from CubiCasa** | IoU 20.5–29.6, F1 34.0–45.7 | F1 1.9–3.0 | F1 3.7–12.7 |
 | **Ours CAB2 V2M** | – | **zero-shot from CubiCasa5k** | **IoU 66.5, F1 79.9** | openings F1 42.9 | (merged) |
 | **Ours CAB1 V2M, fine-tuned, unfrozen (§3c)** | – | in-domain, 5-fold CV | IoU 82.6, F1 90.5 | openings F1 87.0 | (merged) |
@@ -173,8 +173,8 @@ Same procedure as §2c, but with **LR 3e-5** and up to 300 epochs (patience 25).
 
 | Model | Setting | Walls Rec / F1 / IoU | Openings Rec / F1 / IoU | Mean Rec / F1 / IoU |
 |---|---|---|---|---|
-| Paper CAB1 (trained on CVC-FP) | in-domain | 95 / 94 / 88 | – | 87 / 86 / 77 |
-| Paper CAB2 (trained on CVC-FP) | in-domain | 96 / 95 / 91 | – | 91 / 90 / 82 |
+| Kratochvila et al. CAB1 (trained on CVC-FP) | in-domain | 95 / 94 / 88 | – | 87 / 86 / 77 |
+| Kratochvila et al. CAB2 (trained on CVC-FP) | in-domain | 96 / 95 / 91 | – | 91 / 90 / 82 |
 | Ours CAB1 B4 | zero-shot | 75.0 / 78.8 / 65.0 | 29.2 / 42.4 / 26.9 | 52.1 / 60.6 / 46.0 |
 | | AdaBN | 62.8 / 52.7 / 35.8 | 19.8 / 26.8 / 15.5 | 41.3 / 39.8 / 25.6 |
 | | **fine-tuned, frozen** | 90.8 / 89.4 / 80.9 | 82.7 / 79.9 / 66.5 | 86.8 / 84.7 / 73.7 (± 2.0) |
@@ -194,7 +194,7 @@ Same procedure as §2c, but with **LR 3e-5** and up to 300 epochs (patience 25).
 
 Decoder-only fine-tuning more than doubles openings IoU (≈28 → 65–67) and raises walls IoU by 12–16 points. CAB1 B4, CAB1 V2M and CAB2 V2M are within the fold spread of each other (mean IoU 72.0–73.8, std 1.7–2.9). CAB2 B4 is clearly weaker: in 4 of 5 folds its validation loss is lowest at epoch 4, so early stopping keeps an almost un-adapted model.
 
-Unfreezing the backbone helps every model, most on openings: openings IoU +3.4 to +9.6 (to 72–77 for all but CAB2 B4), walls IoU +0.4 to +2.7, mean IoU +1.9 to +6.0. CAB1 V2M gains the most and is now clearly the best (mean IoU 79.8 ± 1.7, walls IoU 82.6, openings IoU 77.0). Its mean Rec / F1 / IoU (90.1 / 88.8 / 79.8) is above the paper's CAB1 (87 / 86 / 77), though the paper's "Mean" class set is not defined. On walls, the gap to the paper narrows but stays clear: IoU 82.6 vs 88 (CAB1) and 91 (CAB2); F1 90.5 vs 94–95. CAB2 B4 is still the weakest: with the backbone unfrozen its best epoch is again 4–6 in 4 of 5 folds.
+Unfreezing the backbone helps every model, most on openings: openings IoU +3.4 to +9.6 (to 72–77 for all but CAB2 B4), walls IoU +0.4 to +2.7, mean IoU +1.9 to +6.0. CAB1 V2M gains the most and is now clearly the best (mean IoU 79.8 ± 1.7, walls IoU 82.6, openings IoU 77.0). Its mean Rec / F1 / IoU (90.1 / 88.8 / 79.8) is above CAB1 of Kratochvila et al. (87 / 86 / 77), though their "Mean" class set is not defined. On walls, the gap to Kratochvila et al. narrows but stays clear: IoU 82.6 vs 88 (CAB1) and 91 (CAB2); F1 90.5 vs 94–95. CAB2 B4 is still the weakest: with the backbone unfrozen its best epoch is again 4–6 in 4 of 5 folds.
 
 **Learning-rate history.** All runs converged (longest run 158 epochs, best epochs 43–133, with CAB2 B4 at 4).
 
@@ -209,7 +209,7 @@ An earlier partial run with LR 1e-4 and geometric-only augmentation exists only 
 
 ## 4. WAFFLE benchmark (109 plans)
 
-WAFFLE (Ganon et al., *WAFFLE: Multimodal Floorplan Understanding in the Wild*, WACV 2025) is a set of floorplans collected from Wikimedia Commons. Its benchmark subset has 110 hand-segmented plans: mostly churches, castles, palaces and other historic or public buildings, drawn in many styles and often with filled ("poché") walls. That is far from CubiCasa's Finnish apartment plans. The CAB paper does not evaluate on WAFFLE. The published results (zero-shot only) are compared per class in §4b.
+WAFFLE (Ganon et al., *WAFFLE: Multimodal Floorplan Understanding in the Wild*, WACV 2025) is a set of floorplans collected from Wikimedia Commons. Its benchmark subset has 110 hand-segmented plans: mostly churches, castles, palaces and other historic or public buildings, drawn in many styles and often with filled ("poché") walls. That is far from CubiCasa's Finnish apartment plans. Kratochvila et al. do not evaluate on WAFFLE. The published results (zero-shot only) are compared per class in §4b.
 
 Setup: identical to CVC-FP. Labels come from `segmented_descrete_pngs` (wall → walls; door + window → openings; background + interior → bg). One plan (`StephansdomBauHistorie`) is excluded because its mask is misaligned with the image. Zero-shot uses all 10 fold models, pooled. Fine-tuning uses the same checkpoint per combination as §2c/§3c, 5-fold CV 60/20/20, LR 3e-5, max 300 epochs, patience 25. Openings are only 1.0% of pixels (CVC-FP 1.9%, R3D test 1.5%), so openings scores are noisy. Walls, by contrast, are 11.1% (CVC-FP 2.9%) because of the thick filled walls.
 
@@ -260,13 +260,13 @@ The WAFFLE paper evaluates only models trained on CubiCasa5k, with no training o
 | Zeng VGG16 (our k-fold retrain) | CubiCasa5k (zero-shot) | 93.9 / 29.0 / 28.4 (± 3.6) | 23.5 / 5.1 / 4.4 (± 1.1) | 34.7 / 24.0 / 16.6 (± 1.4) |
 
 Comparability caveats:
-- The paper uses all 110 plans; we use 109 (one misaligned mask dropped). It does not state the evaluation resolution or whether metrics are pooled over pixels or averaged per image. We cap the longest side at 812 px and pool.
-- The CubiCasa5k model rows are different checkpoints. The paper uses the official ResNet-152 model; ours is a VGG16 k-fold retrain (same as on R3D). Ours scores lower on walls (IoU 35.9 vs 48.8), with very high precision but low recall, so the two baselines are not interchangeable.
-- The paper's background and interior columns cannot be compared. CubiCasa has no interior class in our 6-class head, so our models predict interior as background. Merged bg + interior IoU is 93.0–93.4 for CAB and 90.7–91.5 for the VGG16 baselines.
+- The WAFFLE paper uses all 110 plans; we use 109 (one misaligned mask dropped). It does not state the evaluation resolution or whether metrics are pooled over pixels or averaged per image. We cap the longest side at 812 px and pool.
+- The CubiCasa5k model rows are different checkpoints. The WAFFLE paper uses the official ResNet-152 model; ours is a VGG16 k-fold retrain (same as on R3D). Ours scores lower on walls (IoU 35.9 vs 48.8), with very high precision but low recall, so the two baselines are not interchangeable.
+- The WAFFLE paper's background and interior columns cannot be compared. CubiCasa has no interior class in our 6-class head, so our models predict interior as background. Merged bg + interior IoU is 93.0–93.4 for CAB and 90.7–91.5 for the VGG16 baselines.
 - Merging doors + windows into openings and interior into bg reproduces the 3-class `waffle_all` results to within a few dozen pixels per fold (GPU nondeterminism).
 
 Findings:
-- **Walls:** every CAB model beats the paper's CubiCasa5K model zero-shot (IoU 54.5–58.1 vs 48.8, precision 80–84 vs 74, recall 61–67 vs 59). The diffusion wall model is still better (63.2), almost entirely through recall (80.5). Our models are more precise but miss about a third of the wall pixels. Which wall types are missed has not been analysed; the paper's own examples point to pillars and curved walls.
+- **Walls:** every CAB model beats the WAFFLE paper's CubiCasa5K model zero-shot (IoU 54.5–58.1 vs 48.8, precision 80–84 vs 74, recall 61–67 vs 59). The diffusion wall model is still better (63.2), almost entirely through recall (80.5). Our models are more precise but miss about a third of the wall pixels. Which wall types are missed has not been analysed; the WAFFLE paper's own examples point to pillars and curved walls.
 - **Doors:** CAB IoU 12.4–14.2 (CAB2 B4: 4.9) vs 9.9. That is slightly better, but every model is poor.
 - **Windows:** CAB IoU 13.0–16.3 vs 20.2, so lower than the official model. Recall is higher (36–40 vs 33) but precision is about half (17–22 vs 34).
 - **After fine-tuning (§4)**, walls IoU is 74.0–76.2 (backbone frozen) or 73.6–77.4 (unfrozen), above every zero-shot model including the diffusion one. That is an in-domain result (5-fold CV on the benchmark itself), and no published method is fine-tuned on WAFFLE, so there is no like-for-like published comparison.
@@ -275,14 +275,54 @@ Findings:
 
 ---
 
+## 5. Paek et al., patch-wise SegFormer-B5 (IEEE Access 2025)
+
+Added 2026-11-19. Paek, Cho, Jeong, Park, *Patch-Wise Analysis and Reconstruction of Large-Scale Floorplan for Digital Twin Modeling*, IEEE Access 13:215031, 2025 (doi:10.1109/ACCESS.2025.3642914; PDF in `docs/`). They segment 256×256 patches (stride 192, softmax voting in the overlaps) with SegFormer-B5, after Real-ESRGAN upscaling of every image with a side ≤ 1000 px. Training: weighted cross-entropy, 50 epochs, a single run, checkpoint chosen by validation mIoU, official dataset splits. Datasets: R2V (Liu et al. 2017; **not** our R3D), CubiCasa5K (bg / wall / door / window) and MLSTRUCT-FP (bg / wall).
+
+**Metrics.** Their mIoU **includes background**, "per-class accuracy" is recall, and "overall accuracy" is pixel accuracy including background. They report no per-class IoU.
+
+**Only CubiCasa5K can be compared** (both use the official 400-plan test set). We have no R2V or MLSTRUCT-FP results. To match their class set, our 6-class pooled 10-fold test confusion matrices were collapsed to 4 classes (railings and stairs → background), and the metrics were recomputed in their definitions (`results/official/test/*_fold_cms.npy`, rows = GT).
+
+| Method | mIoU (4 cl., incl. bg) | Wall acc | Window acc | Door acc | Overall acc |
+|---|---|---|---|---|---|
+| **Paek et al. (patch-wise + SR)** | **0.96** | **0.98** | **0.95** | **0.98** | **0.98** |
+| Paek et al., same model on the whole image (their Table 4) | 0.72 | – | – | – | 0.78 |
+| R2V, as retrained by Paek et al. | 0.78 | 0.89 | 0.83 (doors and windows together) | | 0.85 |
+| DeepFP, as retrained by Paek et al. | 0.77 | 0.88 | 0.79 | 0.81 | 0.82 |
+| **Ours CAB2 V2M** | **0.736** | 0.786 | 0.829 | 0.735 | 0.967 |
+| Ours CAB1 V2M | 0.733 | 0.837 | 0.844 | 0.759 | 0.969 |
+| Ours CAB1 B4 | 0.702 | 0.790 | 0.761 | 0.682 | 0.964 |
+| Ours CAB2 B4 | 0.554 | 0.781 | 0.677 | 0.221 | 0.949 |
+| Our CubiCasa5k VGG16 (reimplementation) | 0.654 | 0.665 | 0.660 | 0.446 | 0.963 |
+| Our DeepFP VGG16 (reimplementation) | 0.637 | 0.624 | 0.612 | 0.460 | 0.959 |
+
+Our 4-class per-class IoU (bg / wall / door / window): CAB2 V2M 0.967 / 0.687 / 0.592 / 0.699; CAB1 V2M 0.970 / 0.728 / 0.562 / 0.673. Fold-to-fold standard deviation of the 4-class mIoU: V2M ≤ 0.005, B4 0.09–0.12.
+
+Their MLSTRUCT-FP result (Table 3, bg + wall): mIoU 0.92, wall accuracy 0.85, background accuracy 0.99, overall accuracy 0.94. Their retrained R2V and DeepFP both score 0.84 mIoU, and the original MLSTRUCT-FP U-Net (Pizarro et al. 2023) 0.77.
+
+**Comment.**
+- **At equal input handling we are on par with them.** Their own SegFormer-B5 on the resized whole image reaches 0.72 mIoU on CubiCasa5K, compared with our 0.733–0.736 (CAB1/CAB2 V2M), so our CNN models match a much larger transformer. Their reported gain comes almost entirely from the patch-wise + super-resolution input pipeline, not from the network.
+- **Their headline numbers are hard to reconcile with other published results:**
+  - A 4-class mean of 0.96 implies door and window IoU of about 0.95. The best door IoU published on this test set that we know of is 0.54–0.59 (Kalervo et al. 53.6; ours 59.2).
+  - Overall accuracy of 0.82–0.85 for their baselines is below what predicting only background would give (bg is 87–90% of pixels). Every one of our models scores ≥ 0.95.
+  - Their tables disagree with each other: R2V with patches is 0.87 mIoU in Table 2 but 0.92 in Table 4.
+  - They report 0.99 wall accuracy on R2V, although they note themselves that R2V walls are single-line annotations without thickness.
+  - Their retrained DeepFP (0.77 mIoU) is far above our reimplementation (0.64) on the same test set.
+- **The labels are probably rasterised differently.** Their Table 1 (training set) gives wall / door / window pixel ratios of 9.7 / 1.03 / 2.16%. Our test set has 7.2 / 0.72 / 1.70%. Thicker masks make IoU easier to score.
+- **The evaluation setup also differs:** they score at the super-resolved resolution, from a single run with no variance, against our 10 pooled fold models.
+- **Conclusion:** the numbers cannot be compared directly. The only like-for-like comparison is their full-image ablation, and there we match it. A fair claim needs their code, or an evaluation of our models on MLSTRUCT-FP (see the Summary).
+
+---
+
 ## Summary
 
 - **Best combination zero-shot: CAB2 + EfficientNetV2M.** It has the best mean IoU on every dataset (CubiCasa5k 55.1, R3D test 68.7, CVC-FP 46.9) and by far the smallest variance between folds on R3D and CVC-FP (mIoU std ≤ 0.4 points, against 4–11 for B4). CAB1 V2M is close and slightly better on CubiCasa walls. CAB2 B4 is consistently the weakest.
-- **Against the paper:** our numbers are lower everywhere. On CubiCasa this mostly reflects the full, noisier test set (400 plans) against the paper's curated 560-plan subset. On R3D and CVC-FP it is zero-shot against in-domain training. The R3D gap is small (walls IoU 82 vs 90). The CVC-FP gap is larger (66 vs 91), as expected given its scanned, stylistically different plans.
+- **Against Kratochvila et al.:** our numbers are lower everywhere. On CubiCasa this mostly reflects the full, noisier test set (400 plans) against their curated 560-plan subset. On R3D and CVC-FP it is zero-shot against in-domain training. The R3D gap is small (walls IoU 82 vs 90). The CVC-FP gap is larger (66 vs 91), as expected given its scanned, stylistically different plans.
 - **Against SOTA:** on CubiCasa5k, the openings and railing classes improve over the original CubiCasa5k model. On R3D, zero-shot performance beats in-domain DeepLabV3+/PSPNet on openings but stays below DeepFloorplan-family methods. On CVC-FP, ours is the strongest zero-shot result found, far above the only other one.
-- **Fine-tuned (like-for-like, §2c/§3c):** decoder-only fine-tuning (frozen backbone) already closes the R3D gap. Walls IoU is 91.2–93.4 against the paper's 90, and walls/openings recall (96.6–97.4 / 81.5–83.4) is close to DeepFloorplan (98 / 83). On CVC-FP, mean IoU rises from about 46 to 72–74 and openings IoU from about 28 to 65–67, but walls IoU (79.1–80.9) is still clearly below the paper's 88–91. After fine-tuning, CAB1 B4, CAB1 V2M and CAB2 V2M are within noise of each other, so the CAB2 V2M advantage seen zero-shot disappears. CAB2 B4 stays the weakest. AdaBN alone hurts every model on both datasets.
-- **Backbone unfrozen (§2c/§3c/§4, Nov 13):** training the encoder too helps every model on R3D (mean IoU +1.0 to +3.1; best CAB2 V2M 83.2, openings recall 84–87, now above DeepFloorplan's 83) and on CVC-FP (mean IoU +1.9 to +6.0; best CAB1 V2M 79.8, openings IoU 77.0). CVC-FP walls IoU rises only to 81.8–82.6 (CAB2 B4: 74.3), so the gap to the paper's 88–91 narrows but remains. On WAFFLE it changes mean IoU by only −0.5 to +2.2.
+- **Fine-tuned (like-for-like, §2c/§3c):** decoder-only fine-tuning (frozen backbone) already closes the R3D gap. Walls IoU is 91.2–93.4 against the 90 of Kratochvila et al., and walls/openings recall (96.6–97.4 / 81.5–83.4) is close to DeepFloorplan (98 / 83). On CVC-FP, mean IoU rises from about 46 to 72–74 and openings IoU from about 28 to 65–67, but walls IoU (79.1–80.9) is still clearly below the 88–91 of Kratochvila et al.. After fine-tuning, CAB1 B4, CAB1 V2M and CAB2 V2M are within noise of each other, so the CAB2 V2M advantage seen zero-shot disappears. CAB2 B4 stays the weakest. AdaBN alone hurts every model on both datasets.
+- **Backbone unfrozen (§2c/§3c/§4, Nov 13):** training the encoder too helps every model on R3D (mean IoU +1.0 to +3.1; best CAB2 V2M 83.2, openings recall 84–87, now above DeepFloorplan's 83) and on CVC-FP (mean IoU +1.9 to +6.0; best CAB1 V2M 79.8, openings IoU 77.0). CVC-FP walls IoU rises only to 81.8–82.6 (CAB2 B4: 74.3), so the gap to the 88–91 of Kratochvila et al. narrows but remains. On WAFFLE it changes mean IoU by only −0.5 to +2.2.
 - **WAFFLE (§4):** the hardest dataset. Zero-shot mean IoU is 38–39, and decoder-only fine-tuning reaches 54.7–57.1 (walls IoU 74–76, openings 35–38). The four combinations are tied after fine-tuning; unfreezing the backbone gives 55.8–59.0 (walls 74–77, openings 37–42). Against the WAFFLE paper (§4b, zero-shot), every CAB model beats the official CubiCasa5K model on walls (IoU 54.5–58.1 vs 48.8) and doors (12–14 vs 10, except CAB2 B4), but not on windows (13–16 vs 20). The ControlNet wall model (63.2) is still ahead zero-shot.
+- **Against Paek et al. (IEEE Access 2025, §5):** their patch-wise SegFormer-B5 reports 0.96 4-class mIoU on CubiCasa5K, against 0.736 for ours. Their own whole-image ablation (0.72) is on par with ours, though, and their numbers are internally inconsistent, so the gap is not a like-for-like result. A zero-shot and fine-tuned evaluation on MLSTRUCT-FP (wall only, multi-unit, 6500–9500 px plans) would be the most useful next comparison: it is the dataset this project is named for, and it is the one benchmark where their reported numbers (0.92 mIoU, 0.85 wall accuracy) are moderate and plausible.
 - **Open follow-ups:** a full CVC run at LR 1e-4 with and without photometric augmentation (one fold hints it is better on openings), why CAB2 B4 stops at epoch 4–6 on CVC-FP (frozen and unfrozen), what limits WAFFLE openings now that unfreezing barely helps there, an ImageNet-only baseline (decoder trained from scratch on the target data), and a check of how much CubiCasa accuracy the fine-tuned models lose.
 
 
@@ -294,6 +334,8 @@ Findings:
 - Zhang et al., Direction-Aware Learnable Additive Kernels, arXiv 2020 — https://arxiv.org/abs/2001.11194
 - Ganon et al., WAFFLE: Multimodal Floorplan Understanding in the Wild, WACV 2025 — https://arxiv.org/abs/2412.00955
 - Phung & Averbuch-Elor, Raster2Seq: Polygon Sequence Generation for Floorplan Reconstruction, arXiv 2026 — https://arxiv.org/abs/2602.09016
+- Paek et al., Patch-Wise Analysis and Reconstruction of Large-Scale Floorplan for Digital Twin Modeling, IEEE Access 13, 2025 — https://doi.org/10.1109/ACCESS.2025.3642914
+- Pizarro et al., Large-scale multi-unit floor plan dataset (MLSTRUCT-FP), Autom. Construct. 156, 2023 — https://github.com/MLSTRUCT/MLSTRUCT-FP
 - Norrby et al., FGSSNet, arXiv 2025 — https://arxiv.org/abs/2507.10343
 - Graumann et al., Rotation Invariance in Floor Plan Digitization using Zernike Moments, arXiv 2025 — https://arxiv.org/abs/2504.03241
 - Dodge, Xu, Stenger, Parsing Floor Plan Images, MVA 2017 — https://bjornstenger.github.io/papers/dodge_mva2017.pdf
