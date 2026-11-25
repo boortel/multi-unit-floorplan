@@ -1,0 +1,54 @@
+{
+ "source": "results/mlstruct/finetune/mlstruct-s40_cab1_EfficientNetV2M_split0_20261123-171410.json",
+ "dataset": "mlstruct",
+ "scale": "s40",
+ "model": "cab1",
+ "backbone": "EfficientNetV2M",
+ "split": 0,
+ "backbone_frozen": false,
+ "classes": [
+  "bg",
+  "wall"
+ ],
+ "step": 0.1,
+ "range": 3.0,
+ "offsets": [
+  -1.0
+ ],
+ "p_wall_threshold": 0.7310585786300049,
+ "val_miou_argmax": 0.8911404295492835,
+ "val_miou_tuned": 0.8995897871076258,
+ "repro_diff_frac": 3.4278900602810366e-07,
+ "cm_argmax": [
+  [
+   11490744215,
+   64128339
+  ],
+  [
+   13637652,
+   293013730
+  ]
+ ],
+ "cm_tuned": [
+  [
+   11509000198,
+   45872356
+  ],
+  [
+   21770763,
+   284880619
+  ]
+ ],
+ "cm_finetuned_stored": [
+  [
+   11490745135,
+   64127419
+  ],
+  [
+   13638765,
+   293012617
+  ]
+ ],
+ "test_miou_argmax": 0.8917707108064956,
+ "test_miou_tuned": 0.901137240123154
+}

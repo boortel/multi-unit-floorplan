@@ -15,6 +15,10 @@ Splits:
     cvc: 5-fold CV over all 122 plans; fold k = test, the next fold = val, rest = train
          (i.e. 60/20/20 as in the paper); pool test CMs over the 5 folds.
     waffle: same 5-fold CV protocol as cvc over the 109 WAFFLE benchmark plans.
+    mlstruct: same 5-fold CV protocol over the 934 MLSTRUCT-FP plan images (kfold_patch/mlstruct_data.py),
+         bg / wall only (CubiCasa walls -> wall, everything else -> bg). Plans are 6500-9600 px, so training
+         uses random crops streamed from PNG folders at --scale (s40 = 40 px/m, or native), validation a fixed
+         seeded set of crops, and the test split is scored with tiled inference at native GT resolution.
 
 The test split is evaluated zero-shot, after AdaBN (BatchNorm statistics recomputed on the
 unlabelled train-split images, no weight updates) and after fine-tuning (LR 1e-5 by default,
@@ -41,6 +45,8 @@ import tensorflow as tf  # noqa: E402
 import segmentation_models as sm  # noqa: E402
 from datasets import floorplans  # noqa: E402
 from training import loss_functions  # noqa: E402
+import mlstruct_data  # noqa: E402
+from tiled_inference import predict_tiled, tile_batch, wall_cm, wall_metrics  # noqa: E402
 
 CLASSES = ['bg', 'walls', 'openings']
 # rows: 6 CubiCasa outputs -> 3 targets
@@ -48,6 +54,8 @@ AGG = np.array([[1, 0, 0], [0, 1, 0], [1, 0, 0], [0, 0, 1], [0, 0, 1], [1, 0, 0]
 N_UP = 6
 CROP = 512
 CVC_FOLDS = 5
+# mlstruct: 6 CubiCasa outputs -> bg / wall
+AGG_WALL = np.array([[1, 0], [0, 1], [1, 0], [1, 0], [1, 0], [1, 0]], np.float32)
 
 
 def records(dataset):
@@ -55,7 +63,9 @@ def records(dataset):
         return {'train': ('data/tfrecords/r3d/r3d_train', 179), 'test': ('data/tfrecords/r3d/r3d_test', 53)}
     if dataset == 'waffle':
         return {'all': ('data/tfrecords/waffle/waffle_all', 109)}
-    return {'all': ('data/tfrecords/cvc/cvc_all', 122)}
+    if dataset == 'cvc':
+        return {'all': ('data/tfrecords/cvc/cvc_all', 122)}
+    raise ValueError(f'unknown dataset {dataset}')
 
 
 def split_indices(dataset, split, seed=0):
@@ -96,7 +106,7 @@ def augment(img, mask):
     img = tf.pad(img, pad, constant_values=255.)
     bg = tf.pad(mask[..., :1], pad, constant_values=1.)
     mask = tf.concat([bg, tf.pad(mask[..., 1:], pad)], -1)
-    both = tf.image.random_crop(tf.concat([img, mask], -1), [CROP, CROP, 6])
+    both = tf.image.random_crop(tf.concat([img, mask], -1), [CROP, CROP, 3 + mask.shape[-1]])
     return photometric(both[..., :3]), both[..., 3:]
 
 
@@ -126,13 +136,13 @@ def photometric(img):
     return img
 
 
-def wrap(base):
+def wrap(base, agg=AGG):
     inp = tf.keras.Input((None, None, 3))
     y = base(inp)
     if isinstance(y, (list, tuple)):
         y = y[0]
     y = tf.cast(y, tf.float32)
-    out = tf.keras.layers.Lambda(lambda t: tf.einsum('bhwc,ck->bhwk', t, tf.constant(AGG)), name='merge3')(y)
+    out = tf.keras.layers.Lambda(lambda t: tf.einsum('bhwc,ck->bhwk', t, tf.constant(agg)), name=f'merge{agg.shape[1]}')(y)
     return tf.keras.Model(inp, out)
 
 
@@ -178,11 +188,83 @@ def confusion(model, ds):
     return cm
 
 
+# ---------------------------------------------------------------- MLSTRUCT-FP (PNG folders, crops, tiled test)
+def _ml_paths(scale, ids):
+    d = mlstruct_data.scale_dir(scale)
+    return ([os.path.join(d, i, 'input.png') for i in ids], [os.path.join(d, i, 'mask.png') for i in ids])
+
+
+def _ml_load(fi, fm):
+    img = tf.cast(tf.io.decode_png(tf.io.read_file(fi), channels=3)[..., ::-1], tf.float32)  # RGB file -> BGR
+    mask = tf.io.decode_png(tf.io.read_file(fm), channels=1)
+    return img, mask
+
+
+def _pad_min(img, mask, size):
+    h, w = tf.shape(img)[0], tf.shape(img)[1]
+    ph, pw = tf.maximum(size - h, 0), tf.maximum(size - w, 0)
+    img = tf.pad(img, [[0, ph], [0, pw], [0, 0]], constant_values=255.)
+    mask = tf.pad(mask, [[0, ph], [0, pw], [0, 0]])
+    return img, mask
+
+
+def mlstruct_train(scale, ids, crops_per_plan, src=640):
+    """Endless stream of augmented 512 crops: each loaded plan yields `crops_per_plan` random src x src
+    windows (src > CROP leaves room for the 0.8-1.2 rescale in augment())."""
+    fi, fm = _ml_paths(scale, ids)
+
+    def crops(img, mask):
+        img, mask = _pad_min(img, mask, src)
+        both = tf.concat([img, tf.cast(mask, tf.float32)], -1)
+
+        def one(_):
+            c = tf.image.random_crop(both, [src, src, 4])
+            return c[..., :3], tf.one_hot(tf.cast(c[..., 3], tf.int32), 2)
+        return tf.data.Dataset.range(crops_per_plan).map(one)
+
+    par = 4 if scale == 'native' else 16
+    ds = tf.data.Dataset.from_tensor_slices((fi, fm)).shuffle(len(fi), reshuffle_each_iteration=True).repeat()
+    ds = ds.map(_ml_load, num_parallel_calls=par).flat_map(crops).map(augment, tf.data.AUTOTUNE)
+    return ds.shuffle(8 * crops_per_plan).batch(1).prefetch(tf.data.AUTOTUNE)
+
+
+def mlstruct_fixed_crops(scale, ids, per_plan, seed):
+    """Deterministic CROP x CROP crops (no augmentation) as an in-memory dataset (validation / AdaBN)."""
+    rng = np.random.RandomState(seed)
+    xs, ys = [], []
+    for i in ids:
+        img, mask = mlstruct_data.load_input(scale, i), mlstruct_data.load_mask(scale, i)
+        h, w = mask.shape
+        if h < CROP or w < CROP:
+            ph, pw = max(CROP - h, 0), max(CROP - w, 0)
+            img = np.pad(img, [(0, ph), (0, pw), (0, 0)], constant_values=255)
+            mask = np.pad(mask, [(0, ph), (0, pw)])
+            h, w = mask.shape
+        for _ in range(per_plan):
+            r, c = rng.randint(0, h - CROP + 1), rng.randint(0, w - CROP + 1)
+            xs.append(img[r:r + CROP, c:c + CROP])
+            ys.append(mask[r:r + CROP, c:c + CROP])
+    x = np.stack(xs).astype(np.float32)
+    y = np.eye(2, dtype=np.float32)[np.stack(ys)]
+    return tf.data.Dataset.from_tensor_slices((x, y))
+
+
+def mlstruct_confusion(model, scale, ids, batch=8):
+    """2x2 CM over `ids`: tiled inference at `scale`, scored at native resolution."""
+    cm = np.zeros((2, 2), np.int64)
+    for i in ids:
+        prob = predict_tiled(model, mlstruct_data.load_input(scale, i).astype(np.float32), agg=np.eye(2, dtype=np.float32),
+                             batch=batch)
+        cm += wall_cm(prob[..., 1], mlstruct_data.load_mask('native', i))
+    return cm
+
+
 def metrics(cm):
     tp = np.diag(cm).astype(float)
     fp, fn = cm.sum(0) - tp, cm.sum(1) - tp
     return {'rec': (tp / np.maximum(tp + fn, 1)).tolist(), 'f1': (2 * tp / np.maximum(2 * tp + fp + fn, 1)).tolist(),
-            'iou': (tp / np.maximum(tp + fp + fn, 1)).tolist(), 'acc': float(tp.sum() / cm.sum())}
+            'iou': (tp / np.maximum(tp + fp + fn, 1)).tolist(), 'acc': float(tp.sum() / cm.sum()),
+            **({'paek': {k: float(v) for k, v in wall_metrics(cm).items()}} if cm.shape == (2, 2) else {})}
 
 
 def main():
@@ -190,7 +272,14 @@ def main():
     ap.add_argument('--model', required=True)
     ap.add_argument('--backbone', required=True)
     ap.add_argument('--checkpoint', required=True)
-    ap.add_argument('--dataset', choices=['r3d', 'cvc', 'waffle'], required=True)
+    ap.add_argument('--dataset', choices=['r3d', 'cvc', 'waffle', 'mlstruct'], required=True)
+    ap.add_argument('--scale', default=mlstruct_data.PRIMARY_SCALE, choices=mlstruct_data.SCALES,
+                    help='mlstruct only: input scale (sN = N px/m, or native)')
+    ap.add_argument('--steps_per_epoch', type=int, default=500, help='mlstruct only (train stream is endless)')
+    ap.add_argument('--crops_per_plan', type=int, default=8, help='mlstruct only')
+    ap.add_argument('--val_crops', type=int, default=2, help='mlstruct only: fixed val crops per val plan')
+    ap.add_argument('--skip_adabn', action='store_true')
+    ap.add_argument('--limit', type=int, default=None, help='mlstruct only: first N plans per split (smoke test)')
     ap.add_argument('--split', type=int, default=0)
     ap.add_argument('--epochs', type=int, default=150)
     ap.add_argument('--lr', type=float, default=1e-5)
@@ -202,40 +291,58 @@ def main():
     sm.set_framework('tf.keras')
     tf.random.set_seed(args.split)
 
-    recs = records(args.dataset)
-    sp = split_indices(args.dataset, args.split)
-    tr = subset(*recs[sp['train'][0]], sp['train'][1], None).map(augment, tf.data.AUTOTUNE)
-    tr = tr.shuffle(256, reshuffle_each_iteration=True).batch(1).prefetch(tf.data.AUTOTUNE)
-    va = subset(*recs[sp['val'][0]], sp['val'][1], N_UP).cache()
-    te = subset(*recs[sp['test'][0]], sp['test'][1], N_UP).cache()
+    ml = args.dataset == 'mlstruct'
+    fit_kw = {}
+    if ml:
+        sp = {k: ('mlstruct', v[:args.limit]) for k, v in mlstruct_data.split_ids(args.split).items()}
+        tr = mlstruct_train(args.scale, sp['train'][1], args.crops_per_plan)
+        va = mlstruct_fixed_crops(args.scale, sp['val'][1], args.val_crops, seed=1000 + args.split)
+        fit_kw['steps_per_epoch'] = args.steps_per_epoch
+        test_cm = lambda m: mlstruct_confusion(m, args.scale, sp['test'][1], tile_batch(args.model, args.backbone))  # noqa: E731
+        bn_data = lambda: mlstruct_fixed_crops(args.scale, sp['train'][1], 1, seed=2000 + args.split)  # noqa: E731
+        agg, n_cls, ds_tag = AGG_WALL, 2, f'mlstruct-{args.scale}'
+    else:
+        recs = records(args.dataset)
+        sp = split_indices(args.dataset, args.split)
+        tr = subset(*recs[sp['train'][0]], sp['train'][1], None).map(augment, tf.data.AUTOTUNE)
+        tr = tr.shuffle(256, reshuffle_each_iteration=True).batch(1).prefetch(tf.data.AUTOTUNE)
+        va = subset(*recs[sp['val'][0]], sp['val'][1], N_UP).cache()
+        te = subset(*recs[sp['test'][0]], sp['test'][1], N_UP).cache()
+        test_cm = lambda m: confusion(m, te)  # noqa: E731
+        bn_data = lambda: subset(*recs[sp['train'][0]], sp['train'][1], N_UP)  # noqa: E731
+        agg, n_cls, ds_tag = AGG, 3, args.dataset
 
     base = tf.keras.models.load_model(args.checkpoint, compile=False)
-    model = wrap(base)
-    cm_zero = confusion(model, te)
+    model = wrap(base, agg)
+    cm_zero = test_cm(model)
 
-    w0 = model.get_weights()
-    n_bn = adabn(model, subset(*recs[sp['train'][0]], sp['train'][1], N_UP))
-    cm_ada = confusion(model, te)
-    model.set_weights(w0)
+    if args.skip_adabn:
+        n_bn, cm_ada = 0, np.zeros_like(cm_zero)
+    else:
+        w0 = model.get_weights()
+        n_bn = adabn(model, bn_data())
+        cm_ada = test_cm(model)
+        model.set_weights(w0)
 
     n_unfrozen = unfreeze_backbone(model) if args.unfreeze else 0
     n_trainable = int(sum(v.shape.num_elements() for v in model.trainable_variables))
     print(f'unfrozen backbone layers: {n_unfrozen}, trainable params: {n_trainable}', flush=True)
 
-    model.compile(optimizer=tf.keras.optimizers.Adam(args.lr), loss=loss_functions.asym_unified_focal_loss(3))
-    tag = f'{args.dataset}_{args.model}_{args.backbone}_split{args.split}_{time.strftime("%Y%m%d-%H%M%S")}'
+    model.compile(optimizer=tf.keras.optimizers.Adam(args.lr), loss=loss_functions.asym_unified_focal_loss(n_cls))
+    tag = f'{ds_tag}_{args.model}_{args.backbone}_split{args.split}_{time.strftime("%Y%m%d-%H%M%S")}'
     ckpt = os.path.join(args.models_out, tag, 'best.weights.h5')
     os.makedirs(os.path.dirname(ckpt), exist_ok=True)
     cbs = [tf.keras.callbacks.ModelCheckpoint(ckpt, monitor='val_loss', save_best_only=True, save_weights_only=True),
            tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=8, min_lr=1e-7),
            tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=args.patience)]
     tic = time.time()
-    hist = model.fit(tr, validation_data=va.batch(1), epochs=args.epochs, callbacks=cbs, verbose=2)
+    hist = model.fit(tr, validation_data=va.batch(1), epochs=args.epochs, callbacks=cbs, verbose=2, **fit_kw)
     model.load_weights(ckpt)
-    cm_ft = confusion(model, te)
+    cm_ft = test_cm(model)
 
     os.makedirs(args.out, exist_ok=True)
     res = {'model': args.model, 'backbone': args.backbone, 'checkpoint': args.checkpoint, 'dataset': args.dataset,
+           'scale': args.scale if ml else None, 'steps_per_epoch': fit_kw.get('steps_per_epoch'),
            'split': args.split, 'n_train': len(sp['train'][1]), 'n_val': len(sp['val'][1]), 'n_test': len(sp['test'][1]),
            'epochs_run': len(hist.history['loss']), 'best_epoch': int(np.argmin(hist.history['val_loss'])) + 1,
            'minutes': (time.time() - tic) / 60, 'lr': args.lr, 'aug': 'geom+photo', 'n_bn_adabn': n_bn,

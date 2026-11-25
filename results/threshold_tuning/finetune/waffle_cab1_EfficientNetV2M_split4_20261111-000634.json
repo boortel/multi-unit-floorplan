@@ -1,0 +1,77 @@
+{
+ "source": "results/finetune/waffle_cab1_EfficientNetV2M_split4_20261111-000634.json",
+ "dataset": "waffle",
+ "scale": null,
+ "model": "cab1",
+ "backbone": "EfficientNetV2M",
+ "split": 4,
+ "backbone_frozen": true,
+ "classes": [
+  "bg",
+  "walls",
+  "openings"
+ ],
+ "step": 0.1,
+ "range": 3.0,
+ "offsets": [
+  -0.5,
+  -2.8
+ ],
+ "p_wall_threshold": null,
+ "val_miou_argmax": 0.734713520622551,
+ "val_miou_tuned": 0.7422529960580918,
+ "repro_diff_frac": 1.7804730662983426e-05,
+ "cm_argmax": [
+  [
+   6268753,
+   102770,
+   20210
+  ],
+  [
+   122591,
+   783844,
+   8696
+  ],
+  [
+   52648,
+   1872,
+   52376
+  ]
+ ],
+ "cm_tuned": [
+  [
+   6286703,
+   92586,
+   12444
+  ],
+  [
+   136120,
+   774985,
+   4026
+  ],
+  [
+   59546,
+   2264,
+   45086
+  ]
+ ],
+ "cm_finetuned_stored": [
+  [
+   6268808,
+   102723,
+   20202
+  ],
+  [
+   122599,
+   783845,
+   8687
+  ],
+  [
+   52647,
+   1874,
+   52375
+  ]
+ ],
+ "test_miou_argmax": 0.7029709240922856,
+ "test_miou_tuned": 0.6957148425965262
+}

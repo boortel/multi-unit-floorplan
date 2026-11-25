@@ -1,0 +1,77 @@
+{
+ "source": "results/finetune_unfrozen/r3d_cab2_EfficientNetV2M_split0_20261113-071540.json",
+ "dataset": "r3d",
+ "scale": null,
+ "model": "cab2",
+ "backbone": "EfficientNetV2M",
+ "split": 0,
+ "backbone_frozen": false,
+ "classes": [
+  "bg",
+  "walls",
+  "openings"
+ ],
+ "step": 0.1,
+ "range": 3.0,
+ "offsets": [
+  -0.2,
+  -1.6
+ ],
+ "p_wall_threshold": null,
+ "val_miou_argmax": 0.8956680526133759,
+ "val_miou_tuned": 0.8971822923613145,
+ "repro_diff_frac": 1.8780048076923078e-06,
+ "cm_argmax": [
+  [
+   11776672,
+   28947,
+   32067
+  ],
+  [
+   18318,
+   734468,
+   2803
+  ],
+  [
+   21634,
+   2996,
+   161615
+  ]
+ ],
+ "cm_tuned": [
+  [
+   11784317,
+   27966,
+   25403
+  ],
+  [
+   19131,
+   734411,
+   2047
+  ],
+  [
+   26550,
+   3647,
+   156048
+  ]
+ ],
+ "cm_finetuned_stored": [
+  [
+   11776678,
+   28945,
+   32063
+  ],
+  [
+   18317,
+   734468,
+   2804
+  ],
+  [
+   21629,
+   2996,
+   161620
+  ]
+ ],
+ "test_miou_argmax": 0.8850095415246941,
+ "test_miou_tuned": 0.884946757625133
+}

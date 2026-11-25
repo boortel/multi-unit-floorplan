@@ -1,0 +1,127 @@
+{
+ "model": "cab2",
+ "backbone": "EfficientNetB4",
+ "checkpoint": "models/cab2_cab2_eval_cubicasa_b4_EfficientNetB4_32,64,128,256,512_cubicasa5k_20260831-123736/3",
+ "dataset": "mlstruct",
+ "scale": "native",
+ "steps_per_epoch": 500,
+ "split": 3,
+ "n_train": 561,
+ "n_val": 186,
+ "n_test": 187,
+ "epochs_run": 32,
+ "best_epoch": 7,
+ "minutes": 127.3233238697052,
+ "lr": 3e-05,
+ "aug": "geom+photo",
+ "n_bn_adabn": 0,
+ "backbone_frozen": false,
+ "n_unfrozen_layers": 110,
+ "n_trainable_params": 7937749,
+ "cm_zeroshot": [
+  [
+   11031478902,
+   490666924
+  ],
+  [
+   172674824,
+   143617650
+  ]
+ ],
+ "cm_adabn": [
+  [
+   0,
+   0
+  ],
+  [
+   0,
+   0
+  ]
+ ],
+ "cm_finetuned": [
+  [
+   11395438423,
+   126707403
+  ],
+  [
+   69859813,
+   246432661
+  ]
+ ],
+ "zeroshot": {
+  "rec": [
+   0.9574153173020256,
+   0.4540659731284027
+  ],
+  "f1": [
+   0.9708117132539678,
+   0.30216940394714853
+  ],
+  "iou": [
+   0.9432790148859616,
+   0.17797382415515284
+  ],
+  "acc": 0.9439671237717225,
+  "paek": {
+   "wall_rec": 0.4540659731284027,
+   "wall_prec": 0.22642463002734164,
+   "wall_f1": 0.30216940394714853,
+   "wall_iou": 0.17797382415515284,
+   "bg_iou": 0.9432790148859616,
+   "miou": 0.5606264195205573,
+   "bg_acc": 0.9574153173020256,
+   "overall_acc": 0.9439671237717225
+  }
+ },
+ "adabn": {
+  "rec": [
+   0.0,
+   0.0
+  ],
+  "f1": [
+   0.0,
+   0.0
+  ],
+  "iou": [
+   0.0,
+   0.0
+  ],
+  "acc": NaN,
+  "paek": {
+   "wall_rec": 0.0,
+   "wall_prec": 0.0,
+   "wall_f1": 0.0,
+   "wall_iou": 0.0,
+   "bg_iou": 0.0,
+   "miou": 0.0,
+   "bg_acc": 0.0,
+   "overall_acc": NaN
+  }
+ },
+ "finetuned": {
+  "rec": [
+   0.989003141870147,
+   0.7791290696344548
+  ],
+  "f1": [
+   0.9914489311873981,
+   0.7148854961643832
+  ],
+  "iou": [
+   0.9830428640114984,
+   0.5562815562587616
+  ],
+  "acc": 0.9833958490960755,
+  "paek": {
+   "wall_rec": 0.7791290696344548,
+   "wall_prec": 0.6604293796765817,
+   "wall_f1": 0.7148854961643832,
+   "wall_iou": 0.5562815562587616,
+   "bg_iou": 0.9830428640114984,
+   "miou": 0.76966221013513,
+   "bg_acc": 0.989003141870147,
+   "overall_acc": 0.9833958490960755
+  }
+ },
+ "weights": "models/finetune_mlstruct/mlstruct-native_cab2_EfficientNetB4_split3_20261124-085745/best.weights.h5"
+}

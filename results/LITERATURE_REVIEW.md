@@ -118,7 +118,7 @@ Our column uses the current best results from [`OVERVIEW_all_datasets.md`](OVERV
 | CubiCasa5k wall IoU | MuraNet 78.4, FGSSNet 78.3, MiT-UNet 77.2 (walls-only models) | 72.8 (CAB1 V2M) | **5–6 points behind** walls-only models |
 | CubiCasa5k Boundary / door / window IoU, SALI-FP class mapping | Official CubiCasa5K checkpoint 71.7 / 61.8 / 72.0 | 72.4 (CAB1 V2M) / 59.2 / 69.9 (CAB2 V2M) | **Walls +0.7; doors −2.6; windows −2.1** (resolution still differs) |
 | CubiCasa5k, Paek et al. | 0.96 4-class mIoU | 0.736 | Not credible / not comparable (comparison doc §5) |
-| MLSTRUCT-FP walls | Paek ≈ 85–86 IoU (implied), recall 85 | v1 CAB: IoU 81–83 †, recall 92 † | Roughly on par; **no current-repo numbers** |
+| MLSTRUCT-FP walls | Paek ≈ 85–86 IoU (implied), recall 85, mIoU 92; v1 CAB: IoU 81–83 †, recall 92 † | 76.6 IoU / 95.8 recall / 87.9 mIoU (CAB1 V2M, fine-tuned, s40, 5-fold CV; [`mlstruct/SUMMARY.md`](mlstruct/SUMMARY.md)) | **Recall ahead, IoU/mIoU 4–6 points behind** (precision 79%) |
 | CVC-FP zero-shot walls IoU | Graumann 2025: 29.6 | 66.5 (CAB2 V2M) | **Far ahead** |
 | CVC-FP in-domain walls IoU | Kratochvila et al. 91 (CAB2); Dodge / U-Net 94–95 ³ | 82.6 (CAB1 V2M, fine-tuned, unfrozen); openings IoU 77.0, mean IoU 79.8 | **About 8 points behind** Kratochvila et al.; no new published CVC results to add |
 | WAFFLE zero-shot walls IoU | ControlNet wall model 63.2; CubiCasa5K official 48.8 | 58.1 (CAB2 B4), 57.6 (CAB1 V2M) | Behind the diffusion model, ahead of CubiCasa5K |
@@ -132,7 +132,7 @@ None of the newly reviewed papers report CVC-FP or WAFFLE results. The CVC-FP an
 
 ## 3. Suggested experiments, by priority
 
-1. **MLSTRUCT-FP, zero-shot and fine-tuned (highest priority).**
+1. **MLSTRUCT-FP, zero-shot and fine-tuned (highest priority). Done 2026-11-24 → `results/mlstruct/SUMMARY.md`, `COMPARISON_paper_sota.md` §5b.**
    - *Why:* it is the project's target domain (multi-unit), it puts back the v1 Table 9 numbers that v2 dropped, and it is the one dataset where Paek et al.'s numbers are plausible enough to compare against.
    - *How:*
      - Use the official MLSTRUCT-FP split, as Paek et al. do, with walls only.

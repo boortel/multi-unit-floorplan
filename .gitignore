@@ -65,3 +65,6 @@ MANIFEST
 venv/*
 
 temp/
+# Job-queue bookkeeping of the run_*.sh scripts (regenerated on every run)
+logs/**/queue.txt
+logs/**/queue.next

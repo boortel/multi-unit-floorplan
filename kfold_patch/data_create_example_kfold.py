@@ -127,11 +127,11 @@ def dataset_create(dataset_name, classes, heatmap_inds, data_source, data_dir, a
                            data_dir=os.path.dirname(data_dir), k_fold=k_fold)
 
     elif data_source == 'MLSTRUCT-FP_v1':
-        data_dir = os.path.join(data_dir, data_source)
-        if not os.path.exists(data_dir) or recreate:
-            # Creation sub folders structure and mask files
+        # data_dir already ends in data_source and holds fp.json + the plan PNGs; one sub folder per plan is
+        # written next to them (walls = 1). The cross-dataset evaluation uses kfold_patch/prepare_mlstruct.py.
+        if recreate or not any(os.path.isdir(os.path.join(data_dir, d)) for d in os.listdir(data_dir)):
             print('Creating masks...')
-            create_folders_and_masks(os.path.dirname(data_dir), overlay=overlay, recreate=recreate)
+            create_folders_and_masks(data_dir, overlay=overlay, recreate=recreate, out_dir=data_dir)
 
         # Creation data description
         print('Creating dataset splits...')

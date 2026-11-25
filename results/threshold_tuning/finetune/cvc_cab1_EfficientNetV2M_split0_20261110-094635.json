@@ -1,0 +1,77 @@
+{
+ "source": "results/finetune/cvc_cab1_EfficientNetV2M_split0_20261110-094635.json",
+ "dataset": "cvc",
+ "scale": null,
+ "model": "cab1",
+ "backbone": "EfficientNetV2M",
+ "split": 0,
+ "backbone_frozen": true,
+ "classes": [
+  "bg",
+  "walls",
+  "openings"
+ ],
+ "step": 0.1,
+ "range": 3.0,
+ "offsets": [
+  -1.7,
+  -1.4
+ ],
+ "p_wall_threshold": null,
+ "val_miou_argmax": 0.8043800609812172,
+ "val_miou_tuned": 0.8108916490170466,
+ "repro_diff_frac": 3.838689072327044e-06,
+ "cm_argmax": [
+  [
+   9849119,
+   33661,
+   36162
+  ],
+  [
+   34391,
+   265267,
+   2446
+  ],
+  [
+   30005,
+   4855,
+   164318
+  ]
+ ],
+ "cm_tuned": [
+  [
+   9869600,
+   24057,
+   25285
+  ],
+  [
+   42155,
+   257795,
+   2154
+  ],
+  [
+   37972,
+   3914,
+   157292
+  ]
+ ],
+ "cm_finetuned_stored": [
+  [
+   9849134,
+   33654,
+   36154
+  ],
+  [
+   34394,
+   265266,
+   2444
+  ],
+  [
+   30006,
+   4856,
+   164316
+  ]
+ ],
+ "test_miou_argmax": 0.818788583029758,
+ "test_miou_tuned": 0.8207195802386101
+}

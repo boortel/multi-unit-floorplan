@@ -1,0 +1,16 @@
+{
+ "model": "cab2",
+ "backbone": "EfficientNetV2M",
+ "scale": "native",
+ "tag": "single",
+ "pooled": {
+  "wall_rec": 0.4682884350234429,
+  "wall_prec": 0.36301967215000785,
+  "wall_f1": 0.40898894810941805,
+  "wall_iou": 0.25706229232249567,
+  "bg_iou": 0.9638311034405315,
+  "miou": 0.6104466978815135,
+  "bg_acc": 0.9777242395470898,
+  "overall_acc": 0.9642781524599708
+ }
+}

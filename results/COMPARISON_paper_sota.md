@@ -281,7 +281,7 @@ Added 2026-11-19. Paek, Cho, Jeong, Park, *Patch-Wise Analysis and Reconstructio
 
 **Metrics.** Their mIoU **includes background**, "per-class accuracy" is recall, and "overall accuracy" is pixel accuracy including background. They report no per-class IoU.
 
-**Only CubiCasa5K can be compared** (both use the official 400-plan test set). We have no R2V or MLSTRUCT-FP results. To match their class set, our 6-class pooled 10-fold test confusion matrices were collapsed to 4 classes (railings and stairs → background), and the metrics were recomputed in their definitions (`results/official/test/*_fold_cms.npy`, rows = GT).
+**Only CubiCasa5K can be compared** (both use the official 400-plan test set). We have no R2V results; MLSTRUCT-FP is compared separately below (§5b, added 2026-11-24). To match their class set, our 6-class pooled 10-fold test confusion matrices were collapsed to 4 classes (railings and stairs → background), and the metrics were recomputed in their definitions (`results/official/test/*_fold_cms.npy`, rows = GT).
 
 | Method | mIoU (4 cl., incl. bg) | Wall acc | Window acc | Door acc | Overall acc |
 |---|---|---|---|---|---|
@@ -299,6 +299,39 @@ Added 2026-11-19. Paek, Cho, Jeong, Park, *Patch-Wise Analysis and Reconstructio
 Our 4-class per-class IoU (bg / wall / door / window): CAB2 V2M 0.967 / 0.687 / 0.592 / 0.699; CAB1 V2M 0.970 / 0.728 / 0.562 / 0.673. Fold-to-fold standard deviation of the 4-class mIoU: V2M ≤ 0.005, B4 0.09–0.12.
 
 Their MLSTRUCT-FP result (Table 3, bg + wall): mIoU 0.92, wall accuracy 0.85, background accuracy 0.99, overall accuracy 0.94. Their retrained R2V and DeepFP both score 0.84 mIoU, and the original MLSTRUCT-FP U-Net (Pizarro et al. 2023) 0.77.
+
+### 5b. MLSTRUCT-FP (added 2026-11-24)
+
+Full results, protocol and caveats are in [`mlstruct/SUMMARY.md`](mlstruct/SUMMARY.md). MLSTRUCT-FP defines no official split, so we use 5-fold CV over the 934 plan images (seed 0, 60/20/20 per split, the same as CVC-FP/WAFFLE). Inference is tiled (768 px tiles, 25% overlap) and is **scored at native plan resolution**. `s40` means plans resampled to 40 px/m; `native` means the original 112–286 px/m. The fine-tuning recipe matches the unfrozen CVC/WAFFLE runs. Values are % mean ± std over the 5 CV test folds.
+
+| Method | Wall Rec (= wall acc) | Wall F1 | Wall IoU | mIoU (bg+wall) | bg acc | Overall acc |
+|---|---|---|---|---|---|---|
+| Paek et al. (patch-wise SegFormer-B5, native, single run) | 85 | – | – | **92** | 99 | 94 |
+| R2V / DeepFP, retrained by Paek et al. | – | – | – | 84 | – | – |
+| Pizarro et al. U-Net (via Paek et al.) | – | – | – | 77 | – | – |
+| Kratochvila et al. v1 CAB1 / CAB2 B2 (Table 9, random 60/20/20) † | 92 / 92 | 89 / **90** | 81 / **83** | – | – | – |
+| **Ours CAB1 V2M, fine-tuned, s40** | **95.8 ± 0.8** | 86.7 ± 1.1 | 76.6 ± 1.7 | 87.9 ± 0.9 | **99.3** | **99.2** |
+| Ours CAB1 B4, fine-tuned, s40 | 95.1 ± 1.3 | 86.3 ± 0.9 | 75.9 ± 1.4 | 87.5 ± 0.7 | 99.3 | 99.2 |
+| Ours CAB2 V2M, fine-tuned, s40 | 94.2 ± 1.5 | 83.7 ± 1.4 | 71.9 ± 2.1 | 85.5 ± 1.1 | 99.2 | 99.0 |
+| Ours CAB2 B4, fine-tuned, s40 | 88.1 ± 2.0 | 79.4 ± 1.7 | 65.9 ± 2.3 | 82.3 ± 1.2 | 99.1 | 98.8 |
+| Ours CAB1 B4, fine-tuned, native | 90.7 ± 3.3 | 83.9 ± 3.0 | 72.3 ± 4.5 | 85.7 ± 2.4 | 99.3 | 99.1 |
+| Ours CAB1 V2M, zero-shot, s40 (10 CubiCasa folds) | 70.1 ± 1.1 | 53.0 ± 1.5 | 36.0 ± 1.4 | 66.3 ± 0.7 | 97.4 | 96.7 |
+
+**Comment.**
+- **Wall recall is above both references:** 95.8 against 92 (v1) and 85 (Paek).
+- **Overlap metrics are below both:**
+  - Wall IoU is 76.6 against v1's 81–83.
+  - mIoU (bg+wall) is 87.9 against Paek's 92.
+- **The gap is precision (75–79%).** The models over-segment rather than miss walls. The asymmetric focal loss weights recall. All reported numbers use plain argmax (p_wall > 0.5). A validation-tuned cutoff (tested on CAB1 V2M, split 0 only, then stopped) picks p_wall > 0.73. On test it gives wall IoU 79.0 → 80.8, mIoU 89.2 → 90.1, precision 82.0 → 86.1 and recall 95.6 → 92.9. That is the only dataset where tuning helps (see Summary). It closes about half the gap to v1/Paek, but it is not used in the tables.
+- **Paek's overall accuracy of 0.94 is not consistent with their own bg accuracy of 0.99.** With about 3% wall pixels, as in our masks, overall ≈ bg accuracy. The same problem as their CubiCasa table (§5).
+- **Resampling to a fixed metric scale clearly beats native-resolution tiles:**
+  - Fine-tuned wall IoU drops by 3.6 to 13.2 points at native for every model.
+  - Zero-shot it drops by up to 10.
+  - We therefore report s40 as the main setting.
+- **Zero-shot is weak (wall IoU 25–38)** because MLSTRUCT-FP annotates only structural walls. Thin partition walls that the CubiCasa models segment count as false positives (precision 32–43%).
+- **The model ranking after fine-tuning is CAB1 V2M ≈ CAB1 B4 > CAB2 V2M > CAB2 B4.** CAB1 is better here, unlike on R3D/CVC-FP.
+- **AdaBN hurts again** (−1 to −10 IoU).
+- † v1's split and tiling are undocumented, so the 4–6 IoU gap is indicative only.
 
 **Comment.**
 - **At equal input handling we are on par with them.** Their own SegFormer-B5 on the resized whole image reaches 0.72 mIoU on CubiCasa5K, compared with our 0.733–0.736 (CAB1/CAB2 V2M), so our CNN models match a much larger transformer. Their reported gain comes almost entirely from the patch-wise + super-resolution input pipeline, not from the network.
@@ -322,7 +355,13 @@ Their MLSTRUCT-FP result (Table 3, bg + wall): mIoU 0.92, wall accuracy 0.85, ba
 - **Fine-tuned (like-for-like, §2c/§3c):** decoder-only fine-tuning (frozen backbone) already closes the R3D gap. Walls IoU is 91.2–93.4 against the 90 of Kratochvila et al., and walls/openings recall (96.6–97.4 / 81.5–83.4) is close to DeepFloorplan (98 / 83). On CVC-FP, mean IoU rises from about 46 to 72–74 and openings IoU from about 28 to 65–67, but walls IoU (79.1–80.9) is still clearly below the 88–91 of Kratochvila et al.. After fine-tuning, CAB1 B4, CAB1 V2M and CAB2 V2M are within noise of each other, so the CAB2 V2M advantage seen zero-shot disappears. CAB2 B4 stays the weakest. AdaBN alone hurts every model on both datasets.
 - **Backbone unfrozen (§2c/§3c/§4, Nov 13):** training the encoder too helps every model on R3D (mean IoU +1.0 to +3.1; best CAB2 V2M 83.2, openings recall 84–87, now above DeepFloorplan's 83) and on CVC-FP (mean IoU +1.9 to +6.0; best CAB1 V2M 79.8, openings IoU 77.0). CVC-FP walls IoU rises only to 81.8–82.6 (CAB2 B4: 74.3), so the gap to the 88–91 of Kratochvila et al. narrows but remains. On WAFFLE it changes mean IoU by only −0.5 to +2.2.
 - **WAFFLE (§4):** the hardest dataset. Zero-shot mean IoU is 38–39, and decoder-only fine-tuning reaches 54.7–57.1 (walls IoU 74–76, openings 35–38). The four combinations are tied after fine-tuning; unfreezing the backbone gives 55.8–59.0 (walls 74–77, openings 37–42). Against the WAFFLE paper (§4b, zero-shot), every CAB model beats the official CubiCasa5K model on walls (IoU 54.5–58.1 vs 48.8) and doors (12–14 vs 10, except CAB2 B4), but not on windows (13–16 vs 20). The ControlNet wall model (63.2) is still ahead zero-shot.
-- **Against Paek et al. (IEEE Access 2025, §5):** their patch-wise SegFormer-B5 reports 0.96 4-class mIoU on CubiCasa5K, against 0.736 for ours. Their own whole-image ablation (0.72) is on par with ours, though, and their numbers are internally inconsistent, so the gap is not a like-for-like result. A zero-shot and fine-tuned evaluation on MLSTRUCT-FP (wall only, multi-unit, 6500–9500 px plans) would be the most useful next comparison: it is the dataset this project is named for, and it is the one benchmark where their reported numbers (0.92 mIoU, 0.85 wall accuracy) are moderate and plausible.
+- **Against Paek et al. (IEEE Access 2025, §5):** their patch-wise SegFormer-B5 reports 0.96 4-class mIoU on CubiCasa5K, against 0.736 for ours. Their own whole-image ablation (0.72) is on par with ours, though, and their numbers are internally inconsistent, so the gap is not a like-for-like result. On MLSTRUCT-FP (§5b, 5-fold CV, tiled), our fine-tuned CAB1 V2M reaches wall recall 95.8 (theirs 85) but mIoU 87.9 (theirs 92) and wall IoU 76.6, below the 81–83 of v1; the gap is precision.
+- **Decision threshold (2026-11-25):** every number in this document uses plain argmax. Validation-tuned per-class offsets were tried on the fine-tuned runs (`kfold_patch/tune_threshold.py`, results in [`threshold_tuning/SUMMARY.md`](threshold_tuning/SUMMARY.md); inference only, no retraining) and stopped after R3D, CVC-FP and most of WAFFLE:
+  - R3D: about +0.1 test mIoU.
+  - CVC-FP: +0.2 to +0.6, within the fold-to-fold spread.
+  - WAFFLE: −0.6 to +0.2, so tuning often hurts there.
+  - MLSTRUCT-FP: the only clear gain, +1.8 wall IoU on one split (§5b).
+  The tuned numbers are therefore not reported in the tables.
 - **Open follow-ups:** a full CVC run at LR 1e-4 with and without photometric augmentation (one fold hints it is better on openings), why CAB2 B4 stops at epoch 4–6 on CVC-FP (frozen and unfrozen), what limits WAFFLE openings now that unfreezing barely helps there, an ImageNet-only baseline (decoder trained from scratch on the target data), and a check of how much CubiCasa accuracy the fine-tuned models lose.
 
 
