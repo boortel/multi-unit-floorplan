@@ -1,6 +1,8 @@
 # Ablation plan: CAB1 + CAB2 champions, no retraining
 
-Status: **plan only, nothing run yet.** Revised 2026-11-17. Scope agreed with the user: study **only the current best models**, with **the setup that produced the current best results**, and **no retraining**.
+Status (2026-11-26): **everything has run.** The inference-time ablation (screen and main phase), the loss ablation by retraining (§9, §13) and the idle-latency benchmark are done and committed. Results are in `results/ablation_inference/SUMMARY_main.md` and `results/loss_ablation/SUMMARY.md`; the latest status is §12–13. The final write-up (§8.3 item 4) is [`results/ABLATION_inference.md`](../results/ABLATION_inference.md) (2026-11-26). Sections 1–11 are kept as the plan and log at the time they were written.
+
+Original status: **plan only, nothing run yet.** Revised 2026-11-17. Scope agreed with the user: study **only the current best models**, with **the setup that produced the current best results**, and **no retraining**.
 
 ## 1. Scope and setup (unchanged from the reported results)
 
@@ -252,7 +254,7 @@ Everything else (backbone, architecture, LR schedule, 100 epochs, batch 4, folds
 - **Step 0 on GPU passes.** S0 reproduces the reference fold-0 CMs: CAB1 mIoU(fg) 0.5287, rel. CM diff 8e-6; CAB2 0.5440, rel. diff 4e-6. The CPU check results were moved to `results/ablation_inference/check_cpu/`.
 - **Inference timing added.** Every variant JSON now has a `timing` block: per-image forward pass + argmax, batch 1, 768×768, the first 5 images excluded, synced through `.numpy()`; median, mean and p90 in ms, plus the device name. `SUMMARY_<phase>.md` has an `ms/img` column.
   - These runs share GPU 0/2 with the loss-ablation training, so the timings are only indicative. One inference job next to training measured ~42 ms/img; two jobs, one per GPU, measured ~85–89 ms/img.
-  - **A clean latency benchmark (idle GPU) is still to do** after the training finishes.
+  - **A clean latency benchmark (idle GPU) is still to do** after the training finishes. *(Done: §12 and §13.)*
 - **Running:** `DEVICES=0,2 JOBS=2`, screen phase and then main phase. Log: `results/ablation_inference/logs/runner_gpu.log`.
 
 ## 11. Stopped 2026-11-19 08:35 UTC (moving the session to tmux)

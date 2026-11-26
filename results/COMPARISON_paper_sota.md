@@ -1,6 +1,6 @@
 # CAB1/CAB2 (EfficientNet B4 / V2M) vs. Kratochvila et al. and published methods
 
-Compiled 2026-11-09; fine-tuning sections (§2c, §3c) added 2026-11-09/10; WAFFLE (§4, §4b) added 2026-11-11; backbone-unfrozen fine-tuning rows added 2026-11-13. Original paper: Kratochvila et al., *Recognizing and Reconstructing a Multi-Unit Floor Plan*, arXiv:2408.01526 (v2, 2026), Tables III–IV.
+Compiled 2026-11-09; fine-tuning sections (§2c, §3c) added 2026-11-09/10; WAFFLE (§4, §4b) added 2026-11-11; backbone-unfrozen fine-tuning rows added 2026-11-13; MLSTRUCT-FP (§5b) added 2026-11-24. Original paper: Kratochvila et al., *Recognizing and Reconstructing a Multi-Unit Floor Plan*, arXiv:2408.01526 (v2, 2026), Tables III–IV.
 
 For one comparable 3-class view of all datasets, see [`OVERVIEW_all_datasets.md`](OVERVIEW_all_datasets.md). For related work not cited by Kratochvila et al. (Knechtel 2024, MuraNet, MitUNet, SALI-FP, new datasets) and suggested experiments, see [`LITERATURE_REVIEW.md`](LITERATURE_REVIEW.md).
 
@@ -13,6 +13,7 @@ All numbers are pixel-wise and given in %. Rec = recall (equal to DeepFloorplan'
 | Training data | CubiCasa5k only: 4200 train + val, 10-fold CV, one model per fold | A separate model per dataset (60/20/20 split) |
 | CubiCasa test set | CubiCasa5k official test (400 plans), pooled over the 10 fold models | "Cubicasa": a refined 560-plan subset of CubiCasa5k |
 | R3D / CVC-FP / WAFFLE | **Zero-shot** (never trained on them), plus **fine-tuned** rows (§2c, §3c, §4): one CubiCasa fold model per combination, fine-tuned either decoder-only (backbone frozen) or with the encoder unfrozen | Trained and tested in-domain |
+| MLSTRUCT-FP (§5b) | bg / wall only. Zero-shot (10 fold models) and fine-tuned with the encoder unfrozen; tiled inference, scored at native resolution | Only in v1 (Table 9, walls), dropped from v2 |
 | Opening classes on R3D/CVC/WAFFLE | doors + windows → *openings* | not stated; "Mean" class set not defined |
 
 So on R3D and CVC-FP the numbers of Kratochvila et al. (and the published results below) are an **in-domain upper bound** for our zero-shot rows, which measure **generalization**. The fine-tuned rows are in-domain and directly comparable in setting (R3D: 143 train / 36 val from the official 179 train plans, official 53-plan test; CVC-FP: 5-fold CV, 60/20/20, test confusion matrices pooled over folds). On CubiCasa the subsets differ. Kratochvila et al. themselves note that the full CubiCasa5k annotations are noisier, which lowers every metric on the full test set.
@@ -28,6 +29,7 @@ The datasets differ in whether they ship a test split, so fine-tuning (§2c, §3
 | R3D | Yes: 179 train / 53 test (`data/r3d/train`, `data/r3d/test`), the split from DeepFloorplan (Zeng et al., ICCV 2019) that published R3D results use | 143 plans: a seeded random 80% of the official train set | 36 plans: the remaining 20% of the official train set | The 53 official test plans | One run per model on the official test set |
 | CVC-FP | No: 122 plans in one folder (`data/cvc/ImagesGT`) | 3 of 5 folds (72–74 plans) | The next fold, *k*+1 mod 5 (24–25 plans) | Fold *k* (24–25 plans) | 5-fold cross-validation (60/20/20, the ratio Kratochvila et al. state). Test confusion matrices are pooled over the 5 runs, so each plan is tested exactly once, by a model that never trained on it |
 | WAFFLE | No: 109 usable benchmark plans (110 minus one misaligned mask) | 3 of 5 folds (65–66 plans) | Next fold (21–22 plans) | Fold *k* (21–22 plans) | Same 5-fold protocol as CVC-FP |
+| MLSTRUCT-FP | No (954 floors, 934 unique plan images; floors sharing an image are merged) | 3 of 5 folds (560–561 images) | Next fold (186–187) | Fold *k* (186–187) | Same 5-fold protocol; folds in `data/mlstruct_proc/folds.json` (`kfold_patch/mlstruct_data.py`). Inputs resampled to 40 px/m (`s40`) or native; training on random 512 crops, testing tiled |
 
 Checked on 2026-11-13: within every run, train, validation and test are disjoint, and on CVC-FP and WAFFLE the five test folds cover every plan exactly once.
 
@@ -316,6 +318,9 @@ Full results, protocol and caveats are in [`mlstruct/SUMMARY.md`](mlstruct/SUMMA
 | Ours CAB2 B4, fine-tuned, s40 | 88.1 ± 2.0 | 79.4 ± 1.7 | 65.9 ± 2.3 | 82.3 ± 1.2 | 99.1 | 98.8 |
 | Ours CAB1 B4, fine-tuned, native | 90.7 ± 3.3 | 83.9 ± 3.0 | 72.3 ± 4.5 | 85.7 ± 2.4 | 99.3 | 99.1 |
 | Ours CAB1 V2M, zero-shot, s40 (10 CubiCasa folds) | 70.1 ± 1.1 | 53.0 ± 1.5 | 36.0 ± 1.4 | 66.3 ± 0.7 | 97.4 | 96.7 |
+| Ours CAB2 V2M, zero-shot, s40 (10 CubiCasa folds) | 53.5 ± 1.7 | 46.4 ± 1.7 | 30.2 ± 1.4 | 63.4 ± 0.7 | 97.9 | 96.7 |
+| Ours CAB1 B4, zero-shot, s40 (10 CubiCasa folds) | 54.5 ± 1.5 | 42.7 ± 1.5 | 27.2 ± 1.2 | 61.6 ± 0.6 | 97.3 | 96.1 |
+| Ours CAB2 B4, zero-shot, s40 (10 CubiCasa folds) | 46.4 ± 1.5 | 39.6 ± 1.5 | 24.7 ± 1.2 | 60.5 ± 0.6 | 97.6 | 96.3 |
 
 **Comment.**
 - **Wall recall is above both references:** 95.8 against 92 (v1) and 85 (Paek).
@@ -343,7 +348,7 @@ Full results, protocol and caveats are in [`mlstruct/SUMMARY.md`](mlstruct/SUMMA
   - Their retrained DeepFP (0.77 mIoU) is far above our reimplementation (0.64) on the same test set.
 - **The labels are probably rasterised differently.** Their Table 1 (training set) gives wall / door / window pixel ratios of 9.7 / 1.03 / 2.16%. Our test set has 7.2 / 0.72 / 1.70%. Thicker masks make IoU easier to score.
 - **The evaluation setup also differs:** they score at the super-resolved resolution, from a single run with no variance, against our 10 pooled fold models.
-- **Conclusion:** the numbers cannot be compared directly. The only like-for-like comparison is their full-image ablation, and there we match it. A fair claim needs their code, or an evaluation of our models on MLSTRUCT-FP (see the Summary).
+- **Conclusion:** the numbers cannot be compared directly. The only like-for-like comparison is their full-image ablation, and there we match it. A fair claim needs their code. On MLSTRUCT-FP, where we now evaluate our models ourselves (§5b), their numbers look more plausible: we are above them on wall recall and below them on mIoU.
 
 ---
 

@@ -1,6 +1,6 @@
 # CAB1 / CAB2 across all datasets: overview and SOTA comparison
 
-Compiled 2026-11-11; fine-tuning with the backbone unfrozen added 2026-11-13. One comparable view of everything in `official/`, `cross_dataset/`, `finetune/` (decoder only, backbone frozen) and `finetune_unfrozen/` (encoder trained too). Details and per-dataset discussion are in [`COMPARISON_paper_sota.md`](COMPARISON_paper_sota.md); the full generated tables (all models, Rec / F1 / IoU) are in [`ALL_DATASETS_tables.md`](ALL_DATASETS_tables.md), from `kfold_patch/summarize_all_datasets.py`.
+Compiled 2026-11-11; fine-tuning with the backbone unfrozen added 2026-11-13; MLSTRUCT-FP (bg / wall, separate table in §2) added 2026-11-24. One comparable view of everything in `official/`, `cross_dataset/`, `finetune/` (decoder only, backbone frozen) and `finetune_unfrozen/` (encoder trained too). Details and per-dataset discussion are in [`COMPARISON_paper_sota.md`](COMPARISON_paper_sota.md); the full generated tables (all models, Rec / F1 / IoU) are in [`ALL_DATASETS_tables.md`](ALL_DATASETS_tables.md), from `kfold_patch/summarize_all_datasets.py`.
 
 ## Summary
 
@@ -10,6 +10,12 @@ Compiled 2026-11-11; fine-tuning with the backbone unfrozen added 2026-11-13. On
 - **R3D:** fine-tuning reaches walls IoU 91–94, above Kratochvila et al. (90). With the backbone unfrozen, openings recall is 84–87, above DeepFloorplan's 83 (walls recall 97 vs 98), and CAB2 V2M reaches mean IoU 83.2 (decoder only: 80.1–80.9). Zero-shot, walls IoU is already 82.
 - **CVC-FP:** CAB2 V2M is the strongest zero-shot result published (walls IoU 66.5 vs 29.6). After fine-tuning with the backbone unfrozen, walls IoU is 82–83 (CAB2 B4: 74), still about 8 below the in-domain 91 of Kratochvila et al.. The best model, CAB1 V2M, reaches mean IoU 79.8 and openings IoU 77.0 (decoder only: 73.8 and 67.4).
 - **WAFFLE (historic and public buildings):** the hardest dataset. Zero-shot, CAB beats the official CubiCasa5k model on walls (IoU 54.5–58.1 vs 48.8) but not the diffusion wall model (63.2). After fine-tuning, walls IoU is 74–77 and mean IoU 56–59. Unfreezing the backbone changes WAFFLE by only −0.5 to +2.2 mean IoU. Nobody has published a fine-tuned result to compare against.
+- **MLSTRUCT-FP (multi-unit, bg / wall only; Nov 24):**
+  - Fine-tuned at 40 px/m with the backbone unfrozen, CAB1 V2M reaches wall recall 95.8, wall IoU 76.6 and mIoU (bg + wall) 87.9 over 5-fold CV.
+  - Recall is above both published references: Paek et al. 85, v1 of our paper 92.
+  - IoU and mIoU are 4–6 points below them (v1 wall IoU 81–83, Paek mIoU 92). The gap is precision, 75–79%.
+  - Zero-shot wall IoU is only 25–38, because the dataset labels structural walls only.
+  - CAB1 beats CAB2 on this dataset.
 - **Unfreezing the backbone** (Nov 13) helps every model on R3D and CVC-FP: mean IoU +1.0 to +3.1 on R3D and +1.9 to +6.0 on CVC-FP, mostly through openings IoU (CVC-FP: +3.4 to +9.6). Walls IoU changes less (R3D +0.3 to +1.4, CVC-FP +0.4 to +2.7).
 - **Main gap:** openings on WAFFLE. Zero-shot openings IoU drops from 68 on CubiCasa to 24–27 on CVC-FP and WAFFLE. Fine-tuning brings CVC-FP openings to 72–77, but WAFFLE openings stay at 37–42 even with the backbone unfrozen, and WAFFLE runs still stop early (best epochs 3–70). So the frozen backbone was not WAFFLE's main limit; the small training set (about 65 plans per fold) and the very diverse drawing styles are more likely.
 
@@ -114,8 +120,31 @@ Only like-for-like metrics are compared; the setting column says whether a metho
 
 The WAFFLE paper does not state its evaluation resolution or pooling. Raster2Seq (arXiv:2602.09016) reports WAFFLE *interior* segmentation (IoU 73.9), which is a different task. There is no published fine-tuned WAFFLE result.
 
+### MLSTRUCT-FP (multi-unit, 934 plan images, bg / wall)
+
+Not in the 3-class tables of §1, because only structural walls are annotated. Ours: 5-fold CV, tiled inference, scored at native resolution, mean ± std over folds (full tables: [`mlstruct/SUMMARY.md`](mlstruct/SUMMARY.md), discussion: [`COMPARISON_paper_sota.md`](COMPARISON_paper_sota.md) §5b).
+
+| Method | Setting | Wall Rec | Wall F1 | Wall IoU | mIoU (bg + wall) |
+|---|---|---|---|---|---|
+| Paek et al. 2025, patch-wise SegFormer-B5 | in-domain, single run, undefined "original split" | 85 | – | – | **92** |
+| R2V / DeepFP, retrained by Paek et al. | in-domain | – | – | – | 84 |
+| Pizarro et al. 2023 U-Net (via Paek et al.) | in-domain | – | – | – | 77 |
+| Kratochvila et al. v1 CAB1 / CAB2 (EfficientNetB2, Table 9) | in-domain, random 60/20/20 | 92 / 92 | 89 / **90** | 81 / **83** | – |
+| **Ours CAB1 V2M, fine-tuned, unfrozen, s40** | CubiCasa → MLSTRUCT-FP (5-fold CV) | **95.8 ± 0.8** | 86.7 ± 1.1 | 76.6 ± 1.7 | 87.9 ± 0.9 |
+| **Ours CAB1 B4, fine-tuned, unfrozen, s40** | CubiCasa → MLSTRUCT-FP (5-fold CV) | 95.1 ± 1.3 | 86.3 ± 0.9 | 75.9 ± 1.4 | 87.5 ± 0.7 |
+| Ours CAB2 V2M, fine-tuned, unfrozen, s40 | CubiCasa → MLSTRUCT-FP (5-fold CV) | 94.2 ± 1.5 | 83.7 ± 1.4 | 71.9 ± 2.1 | 85.5 ± 1.1 |
+| Ours CAB2 B4, fine-tuned, unfrozen, s40 | CubiCasa → MLSTRUCT-FP (5-fold CV) | 88.1 ± 2.0 | 79.4 ± 1.7 | 65.9 ± 2.3 | 82.3 ± 1.2 |
+| Ours CAB1 V2M | zero-shot from CubiCasa, s40 | 70.1 | 53.0 | 36.0 | 66.3 |
+
+Comments:
+- `s40` means plans resampled to 40 px/m. Fine-tuning at native resolution is 3.6–13 IoU worse for every model.
+- A validation-tuned wall cutoff (p_wall > 0.73, one split only) would add about +1.8 wall IoU. It is not used in this table.
+- Paek's overall accuracy (94) is inconsistent with their bg accuracy (99), and v1's split and tiling are undocumented, so the gaps are indicative only.
+- No other published MLSTRUCT-FP segmentation results were found (search 2026-11-26).
+
 ## 3. Caveats
 
 - **Settings differ:** the published in-domain methods train a separate model per dataset on 60–80% of it. Our fine-tuned rows start from CubiCasa5k and fine-tune either only the decoder ("frozen") or the decoder and the encoder Conv weights ("unfrozen"; BatchNorm stays frozen because the batch size is 1). Our zero-shot rows never see the target dataset.
 - **Openings:** the published R3D and CVC-FP tables do not report openings IoU. CVC-FP door labels include the door swing area, which lowers every openings score.
+- **MLSTRUCT-FP:** bg / wall only and scored at native plan resolution (6500–9600 px) with tiled inference, so its numbers are not comparable with the 3-class means of the other datasets. There is no official split and no building ID, so floors of one building can fall into different folds, as in both published references.
 - **Test sets:** R3D fine-tuned results come from a single test split, so differences under about 1 point are noise. CVC-FP and WAFFLE have no official test split, so their results come from 5-fold cross-validation (60/20/20), pooled so that each plan is tested once. See "Evaluation protocol and data splits" in [`COMPARISON_paper_sota.md`](COMPARISON_paper_sota.md).

@@ -1,6 +1,6 @@
 # Related work not covered by Kratochvila et al.: review, comparison and suggested experiments
 
-Compiled 2026-11-19. Baseline: the 46 references of Kratochvila et al., *Recognizing and Reconstructing a Multi-Unit Floor Plan* (arXiv:2408.01526 v2). Papers already compared in [`COMPARISON_paper_sota.md`](COMPARISON_paper_sota.md) (OGA, DLAK-GAN, WAFFLE, Raster2Seq, FGSSNet, Graumann et al., Paek et al.) are only cross-referenced here.
+Compiled 2026-11-19; MLSTRUCT-FP results (§2, §3 item 1) added 2026-11-24, status checked 2026-11-26. Baseline: the 46 references of Kratochvila et al., *Recognizing and Reconstructing a Multi-Unit Floor Plan* (arXiv:2408.01526 v2). Papers already compared in [`COMPARISON_paper_sota.md`](COMPARISON_paper_sota.md) (OGA, DLAK-GAN, WAFFLE, Raster2Seq, FGSSNet, Graumann et al., Paek et al.) are only cross-referenced here.
 
 "Ours" means the k-fold CubiCasa5k models from this repo (10 folds, pooled confusion matrices, official 400-plan test set) unless stated otherwise. Our zero-shot and fine-tuned numbers (backbone frozen and unfrozen) are the current best results in [`OVERVIEW_all_datasets.md`](OVERVIEW_all_datasets.md) (state of 2026-11-13). All numbers are in %. A number marked † was read from a model summary of the page, not from the verbatim table, and should be checked before it is cited.
 
@@ -135,7 +135,7 @@ None of the newly reviewed papers report CVC-FP or WAFFLE results. The CVC-FP an
 1. **MLSTRUCT-FP, zero-shot and fine-tuned (highest priority). Done 2026-11-24 → `results/mlstruct/SUMMARY.md`, `COMPARISON_paper_sota.md` §5b.**
    - *Why:* it is the project's target domain (multi-unit), it puts back the v1 Table 9 numbers that v2 dropped, and it is the one dataset where Paek et al.'s numbers are plausible enough to compare against.
    - *How:*
-     - Use the official MLSTRUCT-FP split, as Paek et al. do, with walls only.
+     - Use the official MLSTRUCT-FP split, as Paek et al. do, with walls only. *(Done differently: no official split exists, so 5-fold CV over the 934 plan images was used.)*
      - Use tiled inference with overlap and softmax averaging. Whole-plan resizing of 6000–9000 px images would erase walls.
      - Report wall IoU / recall / F1, plus bg+wall mIoU and overall accuracy, to match Paek's table.
      - Run zero-shot from the CubiCasa5k folds, then fine-tune with the same protocol as R3D/CVC-FP (unfrozen).
@@ -156,7 +156,7 @@ None of the newly reviewed papers report CVC-FP or WAFFLE results. The CVC-FP an
 8. **DeepFP-style post-processing on R3D** (closing, hole filling, one class per room region). Knechtel reports +1 to +6 points per class from it. It is cheap, and it is the standard in R3D comparisons.
 9. **MSD (lower priority).** It is useful mainly as a large multi-unit *structural* benchmark (load-bearing walls). The images are rasterized from vector data, so it measures layout understanding, not robustness to drawing style.
 
-Experiments 1–3 can share one engineering step (tiled inference) and need no new data applications. Together they would answer the main open questions: multi-unit performance, the opening baseline and the wall gap.
+Experiments 1–3 can share one engineering step (tiled inference; it now exists as `kfold_patch/tiled_inference.py`, built for experiment 1) and need no new data applications. Together they would answer the main open questions: multi-unit performance, the opening baseline and the wall gap.
 
 ---
 

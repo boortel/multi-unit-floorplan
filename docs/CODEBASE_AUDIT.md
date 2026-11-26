@@ -555,6 +555,8 @@ The current evaluation uses symmetric `argmax` over all 6 classes. With ~88% bac
 
 **Estimated impact:** **+0.5–1.5% minority class recall**
 
+**Update (2026-11-25):** this was tried for the fine-tuned cross-dataset runs, but not for CubiCasa5k: `kfold_patch/tune_threshold.py` with per-class log-odds offsets tuned on validation, results in `results/threshold_tuning/SUMMARY.md`. Test mIoU changed by only −0.6 to +0.6 on R3D, CVC-FP and WAFFLE. Only MLSTRUCT-FP clearly gained (+1.8 wall IoU, one split). The run was stopped and argmax is kept.
+
 ---
 
 ### ⏳ I-4: Connected Component Post-Processing
@@ -584,6 +586,8 @@ The current `asym_unified_focal_loss` uses uniform `delta=0.6` and `gamma=0.5` f
 ### ⏳ I-7: Higher-Resolution Tiled Inference
 
 The 812px resolution cap ([floorplans.py:L220-L222](../datasets/floorplans.py#L220-L222)) destroys thin structures in high-resolution scans. Implementing sliding-window inference with overlapping tiles (e.g., 768×768 with 25% overlap and Gaussian blending) would preserve fine railings and stair hatching.
+
+**Update (2026-11-23):** implemented as `kfold_patch/tiled_inference.py` (768 px tiles, 25% overlap, Hann-weighted softmax averaging, fixed-shape `tf.function`). It is used for MLSTRUCT-FP. On 20 CubiCasa5k test plans, 768 tiles match whole-image inference. It has not been run as a higher-resolution evaluation of CubiCasa5k.
 
 ---
 
